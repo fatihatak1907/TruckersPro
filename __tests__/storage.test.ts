@@ -1,0 +1,86 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  saveLoad,
+  getLoadsForWeek,
+  deleteLoad,
+  saveWeeklyExpenses,
+  getWeeklyExpenses,
+  getAllWeekKeys,
+} from '../src/storage/storage';
+import type { LoadEntry, WeeklyExpenses } from '../src/types';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+beforeEach(async () => {
+  await AsyncStorage.clear();
+});
+
+const sampleLoad: LoadEntry = {
+  id: 'test-1',
+  weekKey: '2026-05-25',
+  driverType: 'owner-op',
+  startLocation: 'TX',
+  endLocation: 'CA',
+  createdAt: '2026-05-25T10:00:00Z',
+  earnings: 2500,
+  commissionRate: 0.10,
+  diesel: 350,
+  def: 25,
+};
+
+describe('saveLoad / getLoadsForWeek', () => {
+  it('saves and retrieves a load', async () => {
+    await saveLoad(sampleLoad);
+    const loads = await getLoadsForWeek('owner-op', '2026-05-25');
+    expect(loads).toHaveLength(1);
+    expect(loads[0].id).toBe('test-1');
+  });
+
+  it('returns empty array for unknown week', async () => {
+    const loads = await getLoadsForWeek('owner-op', '2026-01-01');
+    expect(loads).toHaveLength(0);
+  });
+});
+
+describe('deleteLoad', () => {
+  it('removes a load by id', async () => {
+    await saveLoad(sampleLoad);
+    await deleteLoad('owner-op', '2026-05-25', 'test-1');
+    const loads = await getLoadsForWeek('owner-op', '2026-05-25');
+    expect(loads).toHaveLength(0);
+  });
+});
+
+describe('saveWeeklyExpenses / getWeeklyExpenses', () => {
+  const expenses: WeeklyExpenses = {
+    weekKey: '2026-05-25',
+    truckPayment: 600, truckPaymentFrequency: 'weekly',
+    truckInsurance: 250, trailerInsurance: 80,
+    trailerLease: 200, iftaCost: 50, adminFee: 40,
+    startOdometer: 100000, endOdometer: 103500,
+  };
+
+  it('saves and retrieves weekly expenses', async () => {
+    await saveWeeklyExpenses(expenses);
+    const result = await getWeeklyExpenses('2026-05-25');
+    expect(result?.truckPayment).toBe(600);
+  });
+
+  it('returns null for unknown week', async () => {
+    const result = await getWeeklyExpenses('2025-01-01');
+    expect(result).toBeNull();
+  });
+});
+
+describe('getAllWeekKeys', () => {
+  it('returns distinct week keys for a driver type', async () => {
+    await saveLoad({ ...sampleLoad, id: 'a', weekKey: '2026-05-25' });
+    await saveLoad({ ...sampleLoad, id: 'b', weekKey: '2026-05-18' });
+    const keys = await getAllWeekKeys('owner-op');
+    expect(keys).toContain('2026-05-25');
+    expect(keys).toContain('2026-05-18');
+    expect(keys).toHaveLength(2);
+  });
+});
