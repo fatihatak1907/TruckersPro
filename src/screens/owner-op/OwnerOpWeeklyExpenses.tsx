@@ -1,15 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ScrollView, Alert, SafeAreaView,
+  KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
-import { CurrencyInput } from '../../components/CurrencyInput';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { saveWeeklyExpenses, getWeeklyExpenses } from '../../storage/storage';
-import { getCurrentWeekKey } from '../../utils/weekKey';
+import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
+import { C } from '../../theme';
 import type { WeeklyExpenses } from '../../types';
 
+function Field({ label, value, onChange, keyboard = 'decimal-pad' as any, placeholder = '0.00' }: {
+  label: string; value: string; onChange: (v: string) => void; keyboard?: any; placeholder?: string;
+}) {
+  return (
+    <>
+      <Text style={s.fieldLabel}>{label}</Text>
+      <View style={s.inputRow}>
+        <Text style={s.prefix}>$</Text>
+        <TextInput
+          style={s.inputFlex}
+          value={value}
+          onChangeText={onChange}
+          keyboardType={keyboard}
+          placeholder={placeholder}
+          placeholderTextColor={C.muted}
+        />
+      </View>
+    </>
+  );
+}
+
 export function OwnerOpWeeklyExpenses() {
-  const weekKey = getCurrentWeekKey();
+  const { weekKey } = useWeek();
   const [truckPayment, setTruckPayment] = useState('');
   const [frequency, setFrequency] = useState<'weekly' | 'monthly'>('weekly');
   const [truckInsurance, setTruckInsurance] = useState('');
@@ -20,20 +45,32 @@ export function OwnerOpWeeklyExpenses() {
   const [startOdometer, setStartOdometer] = useState('');
   const [endOdometer, setEndOdometer] = useState('');
 
-  useEffect(() => {
-    getWeeklyExpenses(weekKey).then((saved) => {
-      if (!saved) return;
-      setTruckPayment(String(saved.truckPayment));
-      setFrequency(saved.truckPaymentFrequency);
-      setTruckInsurance(String(saved.truckInsurance));
-      setTrailerInsurance(String(saved.trailerInsurance));
-      setTrailerLease(String(saved.trailerLease));
-      setIftaCost(String(saved.iftaCost));
-      setAdminFee(String(saved.adminFee));
-      setStartOdometer(String(saved.startOdometer));
-      setEndOdometer(String(saved.endOdometer));
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getWeeklyExpenses(weekKey).then((saved) => {
+        if (!saved) {
+          setTruckPayment(''); setFrequency('weekly'); setTruckInsurance('');
+          setTrailerInsurance(''); setTrailerLease(''); setIftaCost('');
+          setAdminFee(''); setStartOdometer(''); setEndOdometer('');
+          return;
+        }
+        setTruckPayment(String(saved.truckPayment));
+        setFrequency(saved.truckPaymentFrequency);
+        setTruckInsurance(String(saved.truckInsurance));
+        setTrailerInsurance(String(saved.trailerInsurance));
+        setTrailerLease(String(saved.trailerLease));
+        setIftaCost(String(saved.iftaCost));
+        setAdminFee(String(saved.adminFee));
+        setStartOdometer(String(saved.startOdometer));
+        setEndOdometer(String(saved.endOdometer));
+      });
+    }, [weekKey])
+  );
+
+  const startOdo = parseFloat(startOdometer) || 0;
+  const endOdo = parseFloat(endOdometer) || 0;
+  const milesDriven = endOdo > startOdo ? endOdo - startOdo : 0;
+  const mileageDeduction = milesDriven * 0.14;
 
   async function handleSave() {
     const expenses: WeeklyExpenses = {
@@ -45,25 +82,44 @@ export function OwnerOpWeeklyExpenses() {
       trailerLease: parseFloat(trailerLease) || 0,
       iftaCost: parseFloat(iftaCost) || 0,
       adminFee: parseFloat(adminFee) || 0,
-      startOdometer: parseFloat(startOdometer) || 0,
-      endOdometer: parseFloat(endOdometer) || 0,
+      startOdometer: startOdo,
+      endOdometer: endOdo,
     };
     await saveWeeklyExpenses(expenses);
     Alert.alert('Saved', 'Weekly expenses updated.');
   }
 
   return (
-    <SafeAreaView style={s.safe}>
-      <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
-        <Text style={s.title}>Weekly Expenses</Text>
-        <Text style={s.week}>Week of {weekKey}</Text>
-
-        <Text style={s.label}>Truck Payment</Text>
-        <View style={s.row}>
-          <View style={{ flex: 1 }}>
-            <CurrencyInput label="" value={truckPayment} onChangeText={setTruckPayment} />
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={[C.gradStart, C.gradEnd]} style={s.header}>
+        <SafeAreaView>
+          <View style={s.headerInner}>
+            <Text style={s.headerTitle}>Weekly Expenses</Text>
+            <Text style={s.headerSub}>{formatWeekDisplay(weekKey)}</Text>
           </View>
-          <View style={s.toggle}>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={s.form}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
+        >
+          <Text style={s.sectionTitle}>TRUCK PAYMENT</Text>
+          <View style={s.inputRow}>
+            <Text style={s.prefix}>$</Text>
+            <TextInput
+              style={s.inputFlex}
+              value={truckPayment}
+              onChangeText={setTruckPayment}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor={C.muted}
+            />
+          </View>
+          <View style={s.toggleRow}>
             {(['weekly', 'monthly'] as const).map((f) => (
               <TouchableOpacity
                 key={f}
@@ -76,48 +132,88 @@ export function OwnerOpWeeklyExpenses() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
 
-        <CurrencyInput label="Truck Insurance (Weekly)" value={truckInsurance} onChangeText={setTruckInsurance} />
-        <CurrencyInput label="Trailer Insurance (Weekly)" value={trailerInsurance} onChangeText={setTrailerInsurance} />
-        <CurrencyInput label="Trailer Lease (Weekly)" value={trailerLease} onChangeText={setTrailerLease} />
-        <CurrencyInput label="IFTA Sticker Cost (Weekly)" value={iftaCost} onChangeText={setIftaCost} />
-        <CurrencyInput label="Admin Fee (Weekly)" value={adminFee} onChangeText={setAdminFee} />
+          <Text style={s.sectionTitle}>INSURANCE & FEES</Text>
+          <Field label="TRUCK INSURANCE (WEEKLY)" value={truckInsurance} onChange={setTruckInsurance} />
+          <Field label="TRAILER INSURANCE (WEEKLY)" value={trailerInsurance} onChange={setTrailerInsurance} />
+          <Field label="TRAILER LEASE (WEEKLY)" value={trailerLease} onChange={setTrailerLease} />
+          <Field label="IFTA STICKER COST (WEEKLY)" value={iftaCost} onChange={setIftaCost} />
+          <Field label="ADMIN FEE (WEEKLY)" value={adminFee} onChange={setAdminFee} />
 
-        <Text style={s.section}>Mileage (Odometer)</Text>
-        <Text style={s.label}>Starting Odometer</Text>
-        <TextInput style={s.input} value={startOdometer} onChangeText={setStartOdometer} keyboardType="number-pad" placeholder="e.g. 100000" placeholderTextColor="#999" />
-        <Text style={s.label}>Ending Odometer</Text>
-        <TextInput style={s.input} value={endOdometer} onChangeText={setEndOdometer} keyboardType="number-pad" placeholder="e.g. 103500" placeholderTextColor="#999" />
+          <Text style={s.sectionTitle}>MILEAGE (ODOMETER)</Text>
+          <Text style={s.fieldLabel}>STARTING ODOMETER</Text>
+          <TextInput
+            style={s.input}
+            value={startOdometer}
+            onChangeText={setStartOdometer}
+            keyboardType="number-pad"
+            placeholder="e.g. 100000"
+            placeholderTextColor={C.muted}
+          />
+          <Text style={s.fieldLabel}>ENDING ODOMETER</Text>
+          <TextInput
+            style={s.input}
+            value={endOdometer}
+            onChangeText={setEndOdometer}
+            keyboardType="number-pad"
+            placeholder="e.g. 103500"
+            placeholderTextColor={C.muted}
+          />
 
-        <TouchableOpacity style={s.btn} onPress={handleSave}>
-          <Text style={s.btnText}>Save Expenses</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+          {milesDriven > 0 && (
+            <View style={s.calcBox}>
+              <Ionicons name="speedometer-outline" size={16} color={C.gradEnd} />
+              <View>
+                <Text style={s.calcText}>Miles driven: {milesDriven.toLocaleString()} mi</Text>
+                <Text style={s.calcText}>Mileage deduction: ${mileageDeduction.toFixed(2)}</Text>
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity onPress={handleSave} activeOpacity={0.85}>
+            <LinearGradient colors={[C.gradEnd, '#1D4ED8']} style={s.saveBtn}>
+              <Text style={s.saveBtnText}>Save Expenses</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f2f4f8' },
-  container: { padding: 20 },
-  title: { fontSize: 24, fontWeight: '700', color: '#1a3c6b', marginBottom: 4 },
-  week: { color: '#888', marginBottom: 20 },
-  label: { fontSize: 14, color: '#555', fontWeight: '600', marginBottom: 4 },
-  section: { fontSize: 16, fontWeight: '700', color: '#1a3c6b', marginTop: 8, marginBottom: 12 },
+  root: { flex: 1, backgroundColor: C.bg },
+  header: { paddingHorizontal: 20, paddingBottom: 24 },
+  headerInner: { paddingTop: 12 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  form: { padding: 20, paddingBottom: 60 },
+  sectionTitle: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5, marginBottom: 12, marginTop: 8 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1, marginBottom: 6, marginTop: 4 },
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    padding: 12, marginBottom: 16, backgroundColor: '#fafafa', fontSize: 16, color: '#111',
+    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
+    padding: 14, marginBottom: 16, backgroundColor: C.inputBg, fontSize: 16, color: C.text,
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  toggle: { flexDirection: 'row', gap: 6 },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
+    backgroundColor: C.inputBg, paddingHorizontal: 14, marginBottom: 16,
+  },
+  prefix: { fontSize: 16, color: C.sub, marginRight: 6 },
+  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 14, color: C.text },
+  toggleRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   toggleBtn: {
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
-    borderWidth: 1, borderColor: '#ccc', backgroundColor: '#f5f5f5',
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.inputBg, alignItems: 'center',
   },
-  toggleActive: { backgroundColor: '#1a3c6b', borderColor: '#1a3c6b' },
-  toggleText: { fontSize: 13, color: '#444' },
-  toggleTextActive: { color: '#fff', fontWeight: '600' },
-  btn: { backgroundColor: '#1a3c6b', borderRadius: 10, padding: 16, alignItems: 'center', marginTop: 8 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  toggleActive: { backgroundColor: C.gradEnd, borderColor: C.gradEnd },
+  toggleText: { fontSize: 14, color: C.sub, fontWeight: '600' },
+  toggleTextActive: { color: '#fff', fontWeight: '700' },
+  calcBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    backgroundColor: '#EFF6FF', borderRadius: 10, padding: 14, marginBottom: 20,
+  },
+  calcText: { color: C.gradEnd, fontWeight: '600', fontSize: 14, lineHeight: 22 },
+  saveBtn: { borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 8 },
+  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

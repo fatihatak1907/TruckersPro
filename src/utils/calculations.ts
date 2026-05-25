@@ -1,12 +1,12 @@
-import type { LoadEntry, WeeklyExpenses, OwnerOpWeeklySummary, CompanyMileWeeklySummary, CompanyCommissionWeeklySummary } from '../types';
+import type { LoadEntry, WeeklyExpenses, FuelEntry, OwnerOpWeeklySummary, CompanyMileWeeklySummary, CompanyCommissionWeeklySummary } from '../types';
 
 export function calcOwnerOpSummary(
   loads: LoadEntry[],
-  expenses: WeeklyExpenses
+  expenses: WeeklyExpenses,
+  fuelEntries: FuelEntry[] = []
 ): OwnerOpWeeklySummary {
   const weekKey = expenses.weekKey;
-
-  const totalEarnings = loads.reduce((sum, l) => sum + (l.earnings ?? 0), 0);
+  const totalEarnings = loads.reduce((sum, l) => sum + (l.earnings ?? 0) + (l.tonu ?? 0), 0);
 
   const truckPaymentWeekly =
     expenses.truckPaymentFrequency === 'monthly'
@@ -21,17 +21,21 @@ export function calcOwnerOpSummary(
     expenses.iftaCost +
     expenses.adminFee;
 
-  const perLoadExpenses = loads.reduce((sum, l) => {
-    const commission = (l.earnings ?? 0) * (l.commissionRate ?? 0);
-    return sum + (l.diesel ?? 0) + (l.def ?? 0) + commission;
-  }, 0);
+  const commissionExpenses = loads.reduce(
+    (sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0),
+    0
+  );
 
-  const totalExpenses = fixedExpenses + perLoadExpenses;
+  const totalDiesel = fuelEntries.filter((f) => f.type === 'diesel').reduce((s, f) => s + f.cost, 0);
+  const totalDef = fuelEntries.filter((f) => f.type === 'def').reduce((s, f) => s + f.cost, 0);
+  const fuelTotal = totalDiesel + totalDef;
+
+  const totalExpenses = fixedExpenses + commissionExpenses + fuelTotal;
   const milesDriven = expenses.endOdometer - expenses.startOdometer;
   const mileageDeduction = milesDriven * 0.14;
   const netProfit = totalEarnings - totalExpenses - mileageDeduction;
 
-  return { weekKey, totalEarnings, totalExpenses, milesDriven, mileageDeduction, netProfit };
+  return { weekKey, totalEarnings, totalExpenses, totalDiesel, totalDef, milesDriven, mileageDeduction, netProfit };
 }
 
 export function calcCompanyMileSummary(loads: LoadEntry[]): CompanyMileWeeklySummary {
