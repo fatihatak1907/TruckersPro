@@ -19,7 +19,8 @@ export function calcOwnerOpSummary(
     expenses.trailerInsurance +
     expenses.trailerLease +
     expenses.iftaCost +
-    expenses.adminFee;
+    expenses.adminFee +
+    (expenses.other ?? 0);
 
   const commissionExpenses = loads.reduce(
     (sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0),

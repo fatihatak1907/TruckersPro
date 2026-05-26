@@ -19,7 +19,7 @@ import type { WeeklyExpenses, LoadEntry } from '../../types';
 const EMPTY_EXPENSES: WeeklyExpenses = {
   weekKey: '', truckPayment: 0, truckPaymentFrequency: 'weekly',
   truckInsurance: 0, trailerInsurance: 0, trailerLease: 0,
-  iftaCost: 0, adminFee: 0, startOdometer: 0, endOdometer: 0,
+  iftaCost: 0, adminFee: 0, other: 0, startOdometer: 0, endOdometer: 0,
 };
 
 type Props = { navigation: any; route: any };

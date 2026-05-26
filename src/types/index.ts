@@ -31,6 +31,7 @@ export type WeeklyExpenses = {
   trailerLease: number;
   iftaCost: number;
   adminFee: number;
+  other: number;
   startOdometer: number;
   endOdometer: number;
 };

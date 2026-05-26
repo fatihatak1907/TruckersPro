@@ -43,6 +43,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
   const [trailerLease, setTrailerLease] = useState('');
   const [iftaCost, setIftaCost] = useState('');
   const [adminFee, setAdminFee] = useState('');
+  const [other, setOther] = useState('');
   const [startOdometer, setStartOdometer] = useState('');
   const [endOdometer, setEndOdometer] = useState('');
 
@@ -52,7 +53,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
         if (!saved) {
           setTruckPayment(''); setFrequency('weekly'); setTruckInsurance('');
           setTrailerInsurance(''); setTrailerLease(''); setIftaCost('');
-          setAdminFee(''); setStartOdometer(''); setEndOdometer('');
+          setAdminFee(''); setOther(''); setStartOdometer(''); setEndOdometer('');
           return;
         }
         setTruckPayment(String(saved.truckPayment));
@@ -62,6 +63,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
         setTrailerLease(String(saved.trailerLease));
         setIftaCost(String(saved.iftaCost));
         setAdminFee(String(saved.adminFee));
+        setOther(String(saved.other ?? 0));
         setStartOdometer(String(saved.startOdometer));
         setEndOdometer(String(saved.endOdometer));
       });
@@ -83,6 +85,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
       trailerLease: parseFloat(trailerLease) || 0,
       iftaCost: parseFloat(iftaCost) || 0,
       adminFee: parseFloat(adminFee) || 0,
+      other: parseFloat(other) || 0,
       startOdometer: startOdo,
       endOdometer: endOdo,
     };
@@ -140,6 +143,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
           <Field label="TRAILER LEASE (WEEKLY)" value={trailerLease} onChange={setTrailerLease} />
           <Field label="IFTA STICKER COST (WEEKLY)" value={iftaCost} onChange={setIftaCost} />
           <Field label="ADMIN FEE (WEEKLY)" value={adminFee} onChange={setAdminFee} />
+          <Field label="OTHER (WEEKLY)" value={other} onChange={setOther} />
 
           <Text style={s.sectionTitle}>MILEAGE (ODOMETER)</Text>
           <Text style={s.fieldLabel}>STARTING ODOMETER</Text>
