@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { C, shadow } from '../theme';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { supabase } from '../supabase/client';
+import { syncEngine } from '../sync/syncEngine';
+import { wipeAll } from '../storage/storage';
 
 type Props = { navigation: NativeStackNavigationProp<any> };
 
@@ -15,11 +18,36 @@ const COMPANY_SUB_TYPES = [
 export function HomeScreen({ navigation }: Props) {
   const [companyExpanded, setCompanyExpanded] = useState(false);
 
+  async function handleSignOut() {
+    Alert.alert('Sign out', 'Sign out of your account?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: async () => {
+          syncEngine.stop();
+          await supabase.auth.signOut();
+          await wipeAll();
+        },
+      },
+    ]);
+  }
+
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={[C.gradStart, C.gradEnd]} style={s.hero}>
         <SafeAreaView>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingRight: 8 }}>
+            <TouchableOpacity
+              onPress={handleSignOut}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 999 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="log-out-outline" size={16} color="#fff" />
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Sign out</Text>
+            </TouchableOpacity>
+          </View>
           <View style={s.heroInner}>
             <Image
               source={require('../../Logo.jpeg')}

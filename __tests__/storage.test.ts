@@ -84,3 +84,49 @@ describe('getAllWeekKeys', () => {
     expect(keys).toHaveLength(2);
   });
 });
+
+import { syncEngine } from '../src/sync/syncEngine';
+import { SYNC_QUEUE_KEY } from '../src/sync/types';
+
+jest.mock('@react-native-community/netinfo', () => ({
+  addEventListener: jest.fn(() => () => {}),
+  fetch: jest.fn(() => Promise.resolve({ isConnected: false })),
+}));
+jest.mock('../src/supabase/client', () => ({
+  supabase: {
+    auth: { getUser: jest.fn(() => Promise.resolve({ data: { user: null } })) },
+    from: jest.fn(),
+  },
+}));
+
+describe('storage enqueues sync ops', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+    syncEngine.__resetForTests();
+  });
+
+  test('saveLoad enqueues an upsertLoad op', async () => {
+    const { saveLoad } = require('../src/storage/storage');
+    await saveLoad('owner-op', {
+      id: 'load-1', weekKey: '2026-05-25', driverType: 'owner-op',
+      startLocation: 'A', endLocation: 'B', createdAt: '2026-05-25T12:00:00Z',
+      earnings: 100,
+    });
+    const queue = JSON.parse((await AsyncStorage.getItem(SYNC_QUEUE_KEY))!);
+    expect(queue.length).toBeGreaterThanOrEqual(1);
+    expect(queue[0].op).toMatchObject({ kind: 'upsertLoad', payload: { id: 'load-1' } });
+  });
+
+  test('deleteLoad enqueues a deleteLoad op', async () => {
+    const { saveLoad, deleteLoad } = require('../src/storage/storage');
+    await saveLoad('owner-op', {
+      id: 'load-1', weekKey: '2026-05-25', driverType: 'owner-op',
+      startLocation: 'A', endLocation: 'B', createdAt: '2026-05-25T12:00:00Z',
+    });
+    await deleteLoad('owner-op', '2026-05-25', 'load-1');
+    const queue = JSON.parse((await AsyncStorage.getItem(SYNC_QUEUE_KEY))!);
+    const last = queue[queue.length - 1];
+    expect(last.op.kind).toBe('deleteLoad');
+    expect(last.op.payload.id).toBe('load-1');
+  });
+});

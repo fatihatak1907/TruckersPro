@@ -11,6 +11,7 @@ import { getLoadsForWeek, getWeeklyExpenses, deleteLoad, getFuelEntriesForWeek, 
 import { calcOwnerOpSummary } from '../../utils/calculations';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { C, shadow } from '../../theme';
+import { SyncStatusBadge } from '../../components/SyncStatusBadge';
 import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../../types';
 
 const EMPTY_EXPENSES: WeeklyExpenses = {
@@ -83,9 +84,12 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
               </TouchableOpacity>
               <Text style={s.headerTitle}>{title}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.homeBtn}>
-              <Ionicons name="home-outline" size={20} color="#fff" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <SyncStatusBadge />
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.homeBtn}>
+                <Ionicons name="home-outline" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={s.weekNav}>
