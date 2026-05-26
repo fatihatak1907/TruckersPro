@@ -63,13 +63,13 @@ describe('saveWeeklyExpenses / getWeeklyExpenses', () => {
   };
 
   it('saves and retrieves weekly expenses', async () => {
-    await saveWeeklyExpenses(expenses);
-    const result = await getWeeklyExpenses('2026-05-25');
+    await saveWeeklyExpenses('owner-op', expenses);
+    const result = await getWeeklyExpenses('owner-op', '2026-05-25');
     expect(result?.truckPayment).toBe(600);
   });
 
   it('returns null for unknown week', async () => {
-    const result = await getWeeklyExpenses('2025-01-01');
+    const result = await getWeeklyExpenses('owner-op', '2025-01-01');
     expect(result).toBeNull();
   });
 });

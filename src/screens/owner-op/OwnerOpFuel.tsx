@@ -14,7 +14,8 @@ import { fmt } from '../../components/SummaryCard';
 import { C } from '../../theme';
 import type { FuelEntry } from '../../types';
 
-export function OwnerOpFuel() {
+export function OwnerOpFuel({ route }: { route: any }) {
+  const driverType: string = route?.params?.driverType ?? 'owner-op';
   const { weekKey, goToPrev, goToNext } = useWeek();
   const [entries, setEntries] = useState<FuelEntry[]>([]);
   const [fuelType, setFuelType] = useState<'diesel' | 'def'>('diesel');
@@ -22,7 +23,7 @@ export function OwnerOpFuel() {
 
   useFocusEffect(
     useCallback(() => {
-      getFuelEntriesForWeek(weekKey).then(setEntries);
+      getFuelEntriesForWeek(driverType, weekKey).then(setEntries);
     }, [weekKey])
   );
 
@@ -42,9 +43,9 @@ export function OwnerOpFuel() {
       cost: c,
       createdAt: new Date().toISOString(),
     };
-    await saveFuelEntry(entry);
+    await saveFuelEntry(driverType, entry);
     setCost('');
-    const updated = await getFuelEntriesForWeek(weekKey);
+    const updated = await getFuelEntriesForWeek(driverType, weekKey);
     setEntries(updated);
   }
 
@@ -54,7 +55,7 @@ export function OwnerOpFuel() {
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
-          await deleteFuelEntry(weekKey, id);
+          await deleteFuelEntry(driverType, weekKey, id);
           setEntries((prev) => prev.filter((e) => e.id !== id));
         },
       },

@@ -50,8 +50,6 @@ export function HomeScreen({ navigation }: Props) {
           <Ionicons name="chevron-forward" size={18} color={C.muted} />
         </TouchableOpacity>
 
-        <Text style={[s.sectionLabel, { marginTop: 8 }]}>OTHER</Text>
-
         <TouchableOpacity
           style={s.card}
           onPress={() => setCompanyExpanded(v => !v)}
@@ -89,6 +87,21 @@ export function HomeScreen({ navigation }: Props) {
             <Ionicons name="chevron-forward" size={16} color={C.muted} />
           </TouchableOpacity>
         ))}
+
+        <TouchableOpacity
+          style={s.card}
+          onPress={() => navigation.navigate('Lease')}
+          activeOpacity={0.85}
+        >
+          <View style={s.iconBox}>
+            <Ionicons name="key-outline" size={22} color={C.gradEnd} />
+          </View>
+          <View style={s.cardText}>
+            <Text style={s.cardTitle}>Lease</Text>
+            <Text style={s.cardSub}>Full expense tracking</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </TouchableOpacity>
       </View>
     </View>
   );

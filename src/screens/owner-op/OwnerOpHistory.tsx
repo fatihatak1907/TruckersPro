@@ -22,29 +22,30 @@ const EMPTY_EXPENSES: WeeklyExpenses = {
   iftaCost: 0, adminFee: 0, startOdometer: 0, endOdometer: 0,
 };
 
-type Props = { navigation: any };
+type Props = { navigation: any; route: any };
 
 type WeekData = {
   summary: ReturnType<typeof calcOwnerOpSummary>;
   loads: LoadEntry[];
 };
 
-export function OwnerOpHistory({ navigation }: Props) {
+export function OwnerOpHistory({ navigation, route }: Props) {
+  const driverType: string = route?.params?.driverType ?? 'owner-op';
   const [weeks, setWeeks] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [weekData, setWeekData] = useState<Record<string, WeekData>>({});
 
   useFocusEffect(
     useCallback(() => {
-      getAllWeekKeys('owner-op').then(setWeeks);
+      getAllWeekKeys(driverType).then(setWeeks);
     }, [])
   );
 
   async function loadWeekData(weekKey: string) {
     const [loads, expenses, fuelEntries] = await Promise.all([
-      getLoadsForWeek('owner-op', weekKey),
-      getWeeklyExpenses(weekKey),
-      getFuelEntriesForWeek(weekKey),
+      getLoadsForWeek(driverType, weekKey),
+      getWeeklyExpenses(driverType, weekKey),
+      getFuelEntriesForWeek(driverType, weekKey),
     ]);
     const summary = calcOwnerOpSummary(
       loads,
@@ -70,7 +71,7 @@ export function OwnerOpHistory({ navigation }: Props) {
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
-          await deleteLoad('owner-op', load.weekKey, load.id);
+          await deleteLoad(driverType, load.weekKey, load.id);
           const remaining = (weekData[load.weekKey]?.loads ?? []).filter((l) => l.id !== load.id);
           if (remaining.length === 0) {
             setWeeks((prev) => prev.filter((w) => w !== load.weekKey));
@@ -89,7 +90,7 @@ export function OwnerOpHistory({ navigation }: Props) {
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
-          await deleteWeekData('owner-op', weekKey);
+          await deleteWeekData(driverType, weekKey);
           setWeeks((prev) => prev.filter((w) => w !== weekKey));
           if (expanded === weekKey) setExpanded(null);
         },
@@ -103,7 +104,7 @@ export function OwnerOpHistory({ navigation }: Props) {
       <LinearGradient colors={[C.gradStart, C.gradEnd]} style={s.header}>
         <SafeAreaView>
           <Text style={s.headerTitle}>History</Text>
-          <Text style={s.headerSub}>Owner Operator — all weeks</Text>
+          <Text style={s.headerSub}>{driverType === 'lease' ? 'Lease Driver' : 'Owner Operator'} — all weeks</Text>
         </SafeAreaView>
       </LinearGradient>
 

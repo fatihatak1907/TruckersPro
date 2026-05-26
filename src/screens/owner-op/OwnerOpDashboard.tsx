@@ -19,9 +19,10 @@ const EMPTY_EXPENSES: WeeklyExpenses = {
   iftaCost: 0, adminFee: 0, startOdometer: 0, endOdometer: 0,
 };
 
-type Props = { navigation: any };
+type Props = { navigation: any; route: any };
 
-export function OwnerOpDashboard({ navigation }: Props) {
+export function OwnerOpDashboard({ navigation, route }: Props) {
+  const driverType: string = route.params?.driverType ?? 'owner-op';
   const { weekKey, goToPrev, goToNext } = useWeek();
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [expenses, setExpenses] = useState<WeeklyExpenses>({ ...EMPTY_EXPENSES, weekKey });
@@ -31,10 +32,10 @@ export function OwnerOpDashboard({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       Promise.all([
-        getLoadsForWeek('owner-op', weekKey),
-        getWeeklyExpenses(weekKey),
-        getFuelEntriesForWeek(weekKey),
-        getProfileName(),
+        getLoadsForWeek(driverType, weekKey),
+        getWeeklyExpenses(driverType, weekKey),
+        getFuelEntriesForWeek(driverType, weekKey),
+        getProfileName(driverType),
       ]).then(([l, e, f, name]) => {
         setLoads(l);
         setExpenses(e ?? { ...EMPTY_EXPENSES, weekKey });
@@ -45,11 +46,12 @@ export function OwnerOpDashboard({ navigation }: Props) {
   );
 
   const summary = calcOwnerOpSummary(loads, expenses, fuelEntries);
+  const title = driverType === 'lease' ? 'Lease Driver' : 'Owner Operator';
 
   function handleEditName() {
     Alert.prompt('Driver / Company Name', '', async (text) => {
       if (text !== null && text !== undefined) {
-        await saveProfileName(text.trim());
+        await saveProfileName(driverType, text.trim());
         setDriverName(text.trim());
       }
     }, 'plain-text', driverName);
@@ -63,7 +65,7 @@ export function OwnerOpDashboard({ navigation }: Props) {
     Alert.alert('Delete Load', `Remove ${load.startLocation} → ${load.endLocation}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        await deleteLoad('owner-op', load.weekKey, load.id);
+        await deleteLoad(driverType, load.weekKey, load.id);
         setLoads((prev) => prev.filter((l) => l.id !== load.id));
       }},
     ]);
@@ -79,7 +81,7 @@ export function OwnerOpDashboard({ navigation }: Props) {
               <TouchableOpacity onPress={handleEditName}>
                 <Text style={s.driverName}>{driverName || 'Tap to add name'}</Text>
               </TouchableOpacity>
-              <Text style={s.headerTitle}>Owner Operator</Text>
+              <Text style={s.headerTitle}>{title}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.goBack()} style={s.homeBtn}>
               <Ionicons name="home-outline" size={20} color="#fff" />

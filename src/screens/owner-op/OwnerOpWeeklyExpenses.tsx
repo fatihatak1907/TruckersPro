@@ -33,7 +33,8 @@ function Field({ label, value, onChange, keyboard = 'decimal-pad' as any, placeh
   );
 }
 
-export function OwnerOpWeeklyExpenses() {
+export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
+  const driverType: string = route?.params?.driverType ?? 'owner-op';
   const { weekKey } = useWeek();
   const [truckPayment, setTruckPayment] = useState('');
   const [frequency, setFrequency] = useState<'weekly' | 'monthly'>('weekly');
@@ -47,7 +48,7 @@ export function OwnerOpWeeklyExpenses() {
 
   useFocusEffect(
     useCallback(() => {
-      getWeeklyExpenses(weekKey).then((saved) => {
+      getWeeklyExpenses(driverType, weekKey).then((saved) => {
         if (!saved) {
           setTruckPayment(''); setFrequency('weekly'); setTruckInsurance('');
           setTrailerInsurance(''); setTrailerLease(''); setIftaCost('');
@@ -85,7 +86,7 @@ export function OwnerOpWeeklyExpenses() {
       startOdometer: startOdo,
       endOdometer: endOdo,
     };
-    await saveWeeklyExpenses(expenses);
+    await saveWeeklyExpenses(driverType, expenses);
     Alert.alert('Saved', 'Weekly expenses updated.');
   }
 

@@ -4,11 +4,11 @@ import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../types';
 function loadsKey(driverType: string, weekKey: string) {
   return `loads:${driverType}:${weekKey}`;
 }
-function expensesKey(weekKey: string) {
-  return `expenses:owner-op:${weekKey}`;
+function expensesKey(driverType: string, weekKey: string) {
+  return `expenses:${driverType}:${weekKey}`;
 }
-function fuelKey(weekKey: string) {
-  return `fuel:owner-op:${weekKey}`;
+function fuelKey(driverType: string, weekKey: string) {
+  return `fuel:${driverType}:${weekKey}`;
 }
 
 export async function saveLoad(load: LoadEntry): Promise<void> {
@@ -33,30 +33,30 @@ export async function deleteLoad(driverType: string, weekKey: string, loadId: st
   }
 }
 
-export async function saveWeeklyExpenses(expenses: WeeklyExpenses): Promise<void> {
-  await AsyncStorage.setItem(expensesKey(expenses.weekKey), JSON.stringify(expenses));
+export async function saveWeeklyExpenses(driverType: string, expenses: WeeklyExpenses): Promise<void> {
+  await AsyncStorage.setItem(expensesKey(driverType, expenses.weekKey), JSON.stringify(expenses));
 }
 
-export async function getWeeklyExpenses(weekKey: string): Promise<WeeklyExpenses | null> {
-  const raw = await AsyncStorage.getItem(expensesKey(weekKey));
+export async function getWeeklyExpenses(driverType: string, weekKey: string): Promise<WeeklyExpenses | null> {
+  const raw = await AsyncStorage.getItem(expensesKey(driverType, weekKey));
   return raw ? JSON.parse(raw) : null;
 }
 
-export async function saveFuelEntry(entry: FuelEntry): Promise<void> {
-  const existing = await getFuelEntriesForWeek(entry.weekKey);
+export async function saveFuelEntry(driverType: string, entry: FuelEntry): Promise<void> {
+  const existing = await getFuelEntriesForWeek(driverType, entry.weekKey);
   const updated = [...existing.filter((e) => e.id !== entry.id), entry];
-  await AsyncStorage.setItem(fuelKey(entry.weekKey), JSON.stringify(updated));
+  await AsyncStorage.setItem(fuelKey(driverType, entry.weekKey), JSON.stringify(updated));
 }
 
-export async function getFuelEntriesForWeek(weekKey: string): Promise<FuelEntry[]> {
-  const raw = await AsyncStorage.getItem(fuelKey(weekKey));
+export async function getFuelEntriesForWeek(driverType: string, weekKey: string): Promise<FuelEntry[]> {
+  const raw = await AsyncStorage.getItem(fuelKey(driverType, weekKey));
   return raw ? JSON.parse(raw) : [];
 }
 
-export async function deleteFuelEntry(weekKey: string, entryId: string): Promise<void> {
-  const existing = await getFuelEntriesForWeek(weekKey);
+export async function deleteFuelEntry(driverType: string, weekKey: string, entryId: string): Promise<void> {
+  const existing = await getFuelEntriesForWeek(driverType, weekKey);
   const updated = existing.filter((e) => e.id !== entryId);
-  await AsyncStorage.setItem(fuelKey(weekKey), JSON.stringify(updated));
+  await AsyncStorage.setItem(fuelKey(driverType, weekKey), JSON.stringify(updated));
 }
 
 export async function getAllWeekKeys(driverType: string): Promise<string[]> {
@@ -73,10 +73,10 @@ export async function deleteWeekData(driverType: string, weekKey: string): Promi
   await AsyncStorage.removeItem(loadsKey(driverType, weekKey));
 }
 
-export async function saveProfileName(name: string): Promise<void> {
-  await AsyncStorage.setItem('profile:owner-op:name', name);
+export async function saveProfileName(driverType: string, name: string): Promise<void> {
+  await AsyncStorage.setItem(`profile:${driverType}:name`, name);
 }
 
-export async function getProfileName(): Promise<string> {
-  return (await AsyncStorage.getItem('profile:owner-op:name')) ?? '';
+export async function getProfileName(driverType: string): Promise<string> {
+  return (await AsyncStorage.getItem(`profile:${driverType}:name`)) ?? '';
 }

@@ -143,6 +143,58 @@ function CompanyCommissionTabs() {
   );
 }
 
+function LeaseTabs() {
+  return (
+    <Tab.Navigator screenOptions={tabBarScreenOptions}>
+      <Tab.Screen
+        name="Dashboard"
+        component={OwnerOpDashboard}
+        initialParams={{ driverType: 'lease' }}
+        options={{
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="AddLoad"
+        component={OwnerOpAddLoad}
+        initialParams={{ driverType: 'lease' }}
+        options={{
+          tabBarLabel: 'Add Load',
+          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Fuel"
+        component={OwnerOpFuel}
+        initialParams={{ driverType: 'lease' }}
+        options={{
+          tabBarLabel: 'Fuel',
+          tabBarIcon: ({ color, size }) => <Ionicons name="water-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="WeeklyExpenses"
+        component={OwnerOpWeeklyExpenses}
+        initialParams={{ driverType: 'lease' }}
+        options={{
+          tabBarLabel: 'Expenses',
+          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={OwnerOpHistory}
+        initialParams={{ driverType: 'lease' }}
+        options={{
+          tabBarLabel: 'History',
+          tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={size} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
 export function AppNavigator() {
   return (
     <WeekProvider>
@@ -152,6 +204,11 @@ export function AppNavigator() {
           <Stack.Screen
             name="OwnerOp"
             component={OwnerOpTabs}
+            options={{ headerShown: false, gestureEnabled: false, headerLeft: () => null }}
+          />
+          <Stack.Screen
+            name="Lease"
+            component={LeaseTabs}
             options={{ headerShown: false, gestureEnabled: false, headerLeft: () => null }}
           />
           <Stack.Screen

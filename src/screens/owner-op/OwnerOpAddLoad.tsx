@@ -17,6 +17,7 @@ import type { LoadEntry } from '../../types';
 type Props = { navigation: any; route: any };
 
 export function OwnerOpAddLoad({ navigation, route }: Props) {
+  const driverType: string = route.params?.driverType ?? route.params?.load?.driverType ?? 'owner-op';
   const { weekKey } = useWeek();
   const editLoad: LoadEntry | undefined = route.params?.load;
 
@@ -61,7 +62,7 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
     const load: LoadEntry = {
       id: editLoad?.id ?? uuidv4(),
       weekKey: editLoad?.weekKey ?? weekKey,
-      driverType: 'owner-op',
+      driverType,
       startLocation,
       endLocation,
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
