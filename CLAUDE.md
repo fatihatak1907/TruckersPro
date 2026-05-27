@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Expo Version
 
-This project uses **Expo SDK 54** (not 56). Always read docs at https://docs.expo.dev/versions/v54.0.0/ before writing Expo-specific code.
+This project uses **Expo SDK 54**. Read docs at https://docs.expo.dev/versions/v54.0.0/ before writing Expo-specific code.
 
 ## Commands
 
 ```bash
-# Start dev server (read QR code with Expo Go on device)
+# Start dev server (scan QR with Expo Go)
 npx expo start
 
 # If Metro fails with ENOENT on hermes-estree/dist, run this fix then restart:
@@ -17,59 +17,105 @@ mkdir -p node_modules/@react-native/babel-preset/node_modules/hermes-estree
 cp -r node_modules/hermes-estree/dist node_modules/@react-native/babel-preset/node_modules/hermes-estree/
 cp node_modules/hermes-estree/package.json node_modules/@react-native/babel-preset/node_modules/hermes-estree/
 
-# Run all tests
+# All tests
 npm test
 
-# Run a single test file
-npx jest __tests__/calculations.test.ts
+# Single test file
+npx jest __tests__/syncEngine.test.ts
 
-# Install packages (always use --legacy-peer-deps)
+# Install packages — always pass --legacy-peer-deps
 npm install <pkg> --legacy-peer-deps
+
+# Type-check
+npx tsc --noEmit
 ```
+
+## Environment
+
+`.env` at project root (gitignored) holds:
+```
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+```
+Without these the app throws at startup (see `src/supabase/client.ts`). Reference template is `.env.example`.
+
+For destructive Supabase changes (running schema SQL, toggling auth config) use the Management API with a `sbp_...` access token rather than asking the user to click through the dashboard. Project ref: `wuegzljzxnacssxzxfsh`. Endpoint: `https://api.supabase.com/v1/projects/{ref}/database/query` with `{"query": "..."}` body.
 
 ## Architecture
 
-**Three driver modes** share most infrastructure but have distinct data models and calculation rules:
+**Four driver modes** — `owner-op`, `lease`, `company-mile`, `company-commission`. Each user account is locked to exactly one driver type (chosen at signup, stored on `profiles.driver_type`, immutable post-signup).
 
-| Mode | Key fields | Earnings formula |
-|------|-----------|-----------------|
-| `owner-op` | earnings, tonu, commissionRate, fuel (diesel/def), weekly expenses, odometer | earnings + tonu − commission − fuel − fixed expenses − mileage deduction ($0.14/mi) |
-| `company-mile` | paidMileage, centsPerMile | paidMileage × centsPerMile |
-| `company-commission` | earnings, commissionRate | earnings × commissionRate |
+| Mode | Tabs | Earnings formula |
+|------|------|-----------------|
+| `owner-op` / `lease` | Dashboard, AddLoad, Fuel, Expenses, History (5) | earnings + tonu − commission − fuel − weekly expenses − mileage deduction ($0.14/mi) |
+| `company-mile` | Dashboard, AddLoad, History (3) | paidMileage × centsPerMile |
+| `company-commission` | Dashboard, AddLoad, History (3) | earnings × commissionRate |
 
-**Entry point**: `index.ts` → `App.tsx` (wraps `AppNavigator` in `WeekProvider`) → `src/navigation/index.tsx`.
+`owner-op` and `lease` share the same screens (`OwnerOpTabs` accepts a `driverType` prop). The difference is purely the displayed label.
 
-**Week key** is always the ISO date of the Monday starting that week (`YYYY-MM-DD`). `src/utils/weekKey.ts` computes the current week key. The shared `WeekContext` (`src/context/WeekContext.tsx`) holds the active week and exposes `goToPrev` / `goToNext` / `formatWeekDisplay(weekKey)`. All screens read `weekKey` from this context — changing it on Dashboard updates all tabs immediately.
+### Three-layer data model
 
-**Storage** (`src/storage/storage.ts`) wraps AsyncStorage with these key schemes:
-- Loads: `loads:{driverType}:{weekKey}` → `LoadEntry[]`
-- Weekly expenses (owner-op only): `expenses:owner-op:{weekKey}` → `WeeklyExpenses`
-- Fuel log (owner-op only): `fuel:owner-op:{weekKey}` → `FuelEntry[]`
-- Profile name: `profile:owner-op:name`
+```
+Screens → src/storage/storage.ts (AsyncStorage) → src/sync/syncEngine.ts → Supabase
+```
 
-`deleteLoad` removes the entire key when the last load for a week is deleted (no empty arrays in storage). `getAllWeekKeys(driverType)` scans all AsyncStorage keys to build the history list.
+**Screens never await the network.** They read/write only AsyncStorage; mutating storage calls enqueue a sync op that gets flushed to Supabase out-of-band. This is what makes the app feel instant and work in cell-signal dead zones.
 
-**Calculations** (`src/utils/calculations.ts`) are pure functions — no side effects, no storage access. All dashboard totals are computed here.
+- **Storage** (`src/storage/storage.ts`) wraps AsyncStorage. Keys:
+  - `loads:{driverType}:{weekKey}` → `LoadEntry[]`
+  - `expenses:{driverType}:{weekKey}` → `WeeklyExpenses`
+  - `fuel:{driverType}:{weekKey}` → `FuelEntry[]`
+  - `profile:name`, `profile:driver_type` — single row per user, no driver-type segment
+  - `sync:queue`, `sync:migrated` — sync engine state
 
-**Navigation** (`src/navigation/index.tsx`): root Stack → three tab navigators (`OwnerOpTabs`, `CompanyMileTabs`, `CompanyCommissionTabs`). Owner-op has 5 tabs (Dashboard, AddLoad, Fuel, WeeklyExpenses, History); company modes have 3 (Dashboard, AddLoad, History). All tab screens stay mounted (React Navigation tab behavior). Add Load screens use `useFocusEffect` + `useCallback([editLoad?.id])` to reset fields on focus. After saving, always call `navigation.setParams({ load: undefined })` before navigating away to clear the edit state from route params.
+  `deleteLoad` removes the whole key when the last load for that week is deleted (no empty arrays in storage). `getAllWeekKeys(driverType)` scans all keys to build the history list. `wipeAll()` clears every app-owned key (used on sign-out).
 
-**Theme** (`src/theme.ts`): all colors/shadows via `C.*` and `shadow` constants. Gradient header on every screen uses `[C.gradStart, C.gradEnd]`. Key colors: `C.accent` (green, profit), `C.danger` (red, loss), `C.gradEnd` (blue, primary).
+- **Sync engine** (`src/sync/syncEngine.ts`) — persistent queue at `sync:queue`. `enqueue(op)` appends + fires a non-blocking flush. `flush()` is serialized (a single in-flight promise; concurrent callers await the same one — required to avoid the race a naive guard introduces). On failure, the op stays at the head of the queue with `attempts++` and `lastError` set, and the flush stops. `start()` subscribes to NetInfo + runs a 30s safety flush; called from `App.tsx` after bootstrap.
 
-**Shared components** (`src/components/`):
-- `CurrencyInput` — `TextInput` with `$` prefix and consistent styling; prefer this over inline `inputRow` patterns
-- `CommissionSelector` — pill button group for picking commission rate percentages
-- `SummaryCard` — formatted key/value rows with the `fmt()` currency helper for dashboard summary displays
+- **Migration** (`src/sync/migration.ts`) — `runMigrationAndPull(userId)` runs on every login: Path A (uploads local data if any + not yet migrated), then Path B (pulls Supabase rows into AsyncStorage). Sets `sync:migrated=true` when done.
 
-## Owner Op specifics
+- **Calculations** (`src/utils/calculations.ts`) are pure functions — no side effects, no storage access. All dashboard totals computed here. Every recurring expense in `WeeklyExpenses` has its own `*Frequency: 'weekly' | 'monthly'`; monthly amounts are divided by 4.33 to weekly equivalents at calculation time.
 
-- TONU-only saves are allowed: if `tonu > 0`, earnings and commissionRate are not required (both default to `0`)
-- Fuel (diesel/DEF) is logged separately in the Fuel tab (`OwnerOpFuel.tsx`), not on the Add Load form
-- Monthly truck payment is divided by `4.33` to get the weekly equivalent
-- Mileage deduction = `(endOdometer − startOdometer) × 0.14`
+### Auth + routing
 
-## Assets
+`App.tsx` is the auth gate. States:
+- `loading` → splash with logo
+- `signed-out` → `<AuthStack>` (Welcome → Login → Signup)
+- `needs-profile` → `<PickDriverTypeScreen>` (recovery for orphaned profiles)
+- `migrating` → "Loading your data…" overlay
+- `ready` → `<WeekProvider>` wrapping the matching tab navigator
+- `error` → retry screen
 
-The app logo is `Logo.jpeg` in the project root (not in `assets/`). It is referenced in `HomeScreen.tsx` as `require('../../Logo.jpeg')`. A copy also exists at `assets/logo.jpeg`.
+On launch, App.tsx calls `supabase.auth.getUser()` (not `getSession()`) so stale tokens for deleted users get caught and signed out. After `SIGNED_IN`, `bootstrap()` fetches the user's `profiles` row (with a short retry loop because SignupScreen inserts the profile right as the event fires — the race is real), runs migration+pull, starts the sync engine, and mounts the driver-type-matching tab navigator. There is no in-app driver-type picker; the choice is locked at signup.
+
+### Supabase schema
+
+Five tables, all RLS-scoped to `auth.uid() = user_id`:
+- `profiles` — `(user_id PK, driver_type, name, …)` — one row per user
+- `loads` — `(id UUID PK, user_id, week_key, driver_type, …)`
+- `fuel_entries` — same key shape as loads
+- `weekly_expenses` — composite PK `(user_id, driver_type, week_key)`. Each recurring expense has its own `*_frequency` text column (default `'weekly'`).
+- `auth.users` (Supabase-managed)
+
+Reference SQL: `src/supabase/schema.sql` (initial) + `src/supabase/schema-v2.sql` (single-row profiles + per-expense frequency columns).
+
+## Conventions
+
+- **Week key** is always `YYYY-MM-DD` of that week's Monday. `src/utils/weekKey.ts` computes it. `WeekContext` (`src/context/WeekContext.tsx`) holds the active week + `goToPrev` / `goToNext` / `formatWeekDisplay(weekKey)`. All tab screens read the same `weekKey` — changing it on one screen updates them all.
+
+- **Theme** (`src/theme.ts`) — dark palette via `C.*`. Background `C.bg`, cards `C.card`/`C.cardElevated`, single accent `C.accent` (yellow `#FFD600`) with `C.accentText` (black) for text on yellow. Status: `C.success` (green), `C.danger` (red). No gradient headers — flat dark only. `C.gradStart` / `C.gradEnd` exist as backwards-compat aliases but should not be used in new code.
+
+- **Headers** — every in-app screen uses `<ScreenHeader title=… subtitle=… right={…} onPress={…} />` from `src/components/ScreenHeader.tsx`. The optional `onPress` makes the title/subtitle tappable (Dashboards use it to wire `handleEditName`). Logos render inline at 48×48 unless a `left` slot overrides.
+
+- **TabBar** — custom floating-pill bar (`src/navigation/TabBar.tsx`) rendered via React Navigation's `tabBar` prop on each tab navigator. The active tab has a yellow `C.accent` circle behind the icon. Screens add `paddingBottom: 120-140` to their ScrollView contentContainerStyle so the tab bar doesn't overlap content.
+
+- **Sign-out** — `confirmAndSignOut()` in `src/utils/signOut.ts` is the single source of truth. The `<SignOutButton />` component renders in the right slot of every Dashboard's ScreenHeader.
+
+- **AddLoad edit state** — Add Load screens use `useFocusEffect` + `useCallback([editLoad?.id])` to reset fields on focus. After saving, always call `navigation.setParams({ load: undefined })` before navigating away so the next focus doesn't re-load the just-saved load.
+
+- **TONU-only saves** are allowed for owner-op/lease: if `tonu > 0`, earnings and commissionRate aren't required (both default to `0`).
+
+- **uuid + crypto** — `uuid` v14 needs `react-native-get-random-values` imported before any uuid call. It's imported as the very first line of `index.ts`. Don't reorder that.
 
 ## Component definition rule
 
@@ -77,4 +123,14 @@ Never define React components (functions used as `<Component />`) inside another
 
 ## Tests
 
-Tests live in `__tests__/` and cover `calculations.ts`, `storage.ts`, and `weekKey.ts`. AsyncStorage is mocked via `jest-async-storage-mock`. The calculations tests use stale field names (`diesel`, `def` directly on `LoadEntry`) — if `LoadEntry` changes, update the test fixtures to use `FuelEntry` objects passed as the third argument to `calcOwnerOpSummary`.
+Live in `__tests__/`. Coverage: `calculations.ts`, `storage.ts`, `weekKey.ts`, `syncEngine.ts`, `migration.ts`. AsyncStorage is mocked via `@react-native-async-storage/async-storage/jest/async-storage-mock` (each test file calls `jest.mock(...)` inline — no global setup). Supabase + NetInfo are mocked per-file.
+
+**Pre-existing failures** in `calculations.test.ts` (3 tests) use stale `LoadEntry` field names (`diesel`, `def` as direct fields). They are documented and not fixed — update the test fixtures to use `FuelEntry` objects as the third arg to `calcOwnerOpSummary` if you change the types.
+
+## Assets
+
+The app logo is `Logo.jpeg` in the project root (not in `assets/`). Referenced from screens as `require('../../Logo.jpeg')` and from `App.tsx` as `require('./Logo.jpeg')`. The welcome screen background is `assets/welcome-bg.jpg` — user-supplied; current file is a Logo.jpeg placeholder until a real photo is dropped in.
+
+## Process notes
+
+The `docs/superpowers/specs/` and `docs/superpowers/plans/` directories hold the spec + plan for each major feature shipped (Supabase auth + sync, signup/password + dark theme). When picking up a feature mid-stream or doing a follow-up, start there for context — they capture the *why* behind the current architecture.
