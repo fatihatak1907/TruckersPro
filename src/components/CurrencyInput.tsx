@@ -1,6 +1,7 @@
 // src/components/CurrencyInput.tsx
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { C } from '../theme';
 
 type Props = {
   label: string;
@@ -21,7 +22,7 @@ export function CurrencyInput({ label, value, onChangeText, placeholder = '0.00'
           onChangeText={onChangeText}
           keyboardType="decimal-pad"
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={C.muted}
         />
       </View>
     </View>
@@ -30,12 +31,14 @@ export function CurrencyInput({ label, value, onChangeText, placeholder = '0.00'
 
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { fontSize: 14, color: '#555', marginBottom: 4, fontWeight: '600' },
+  label: { fontSize: 14, color: C.sub, marginBottom: 4, fontWeight: '600' },
   inputRow: {
     flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingHorizontal: 12, backgroundColor: '#fafafa',
+    backgroundColor: C.card,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    gap: 10,
   },
-  prefix: { fontSize: 16, color: '#333', marginRight: 4 },
-  input: { flex: 1, fontSize: 16, paddingVertical: 10, color: '#111' },
+  prefix: { fontSize: 16, color: C.sub },
+  input: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
 });

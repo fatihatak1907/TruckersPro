@@ -1,16 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert, SafeAreaView,
+  StyleSheet, ScrollView, Alert,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { CommissionSelector } from '../../components/CommissionSelector';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { saveLoad } from '../../storage/storage';
-import { useWeek } from '../../context/WeekContext';
+import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { C } from '../../theme';
 import type { LoadEntry } from '../../types';
 
@@ -68,17 +68,15 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={[C.gradStart, C.gradEnd]} style={s.header}>
-        <SafeAreaView>
-          <View style={s.headerRow}>
-            <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} style={s.backBtn}>
-              <Ionicons name="arrow-back" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={s.headerTitle}>{editLoad ? 'Edit Load' : 'Add Load'}</Text>
-            <View style={{ width: 40 }} />
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+      <ScreenHeader
+        title={editLoad ? 'Edit Load' : 'Add Load'}
+        subtitle={formatWeekDisplay(weekKey)}
+        left={
+          <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="chevron-back" size={24} color={C.text} />
+          </TouchableOpacity>
+        }
+      />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
@@ -107,15 +105,15 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
 
           {driverCut !== null && (
             <View style={s.calcBox}>
-              <Ionicons name="calculator-outline" size={16} color={C.gradEnd} />
+              <Ionicons name="calculator-outline" size={16} color={C.accent} />
               <Text style={s.calcText}>Your Cut: ${driverCut}</Text>
             </View>
           )}
 
           <TouchableOpacity onPress={handleSave} activeOpacity={0.85}>
-            <LinearGradient colors={[C.gradEnd, '#1D4ED8']} style={s.saveBtn}>
+            <View style={s.saveBtn}>
               <Text style={s.saveBtnText}>{editLoad ? 'Update Load' : 'Save Load'}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -125,28 +123,28 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  header: { paddingHorizontal: 20, paddingBottom: 20 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  form: { padding: 20, paddingBottom: 60 },
+  form: { padding: 20, paddingBottom: 140 },
   fieldLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1, marginBottom: 6, marginTop: 4 },
   input: {
-    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
-    padding: 14, marginBottom: 16, backgroundColor: C.inputBg, fontSize: 16, color: C.text,
+    backgroundColor: C.card, borderRadius: 16,
+    padding: 16, marginBottom: 12,
+    fontSize: 16, color: C.text,
   },
   inputRow: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
-    backgroundColor: C.inputBg, paddingHorizontal: 14, marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card, borderRadius: 16,
+    paddingHorizontal: 16, marginBottom: 12,
   },
-  prefix: { fontSize: 16, color: C.sub, marginRight: 6 },
-  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 14, color: C.text },
+  prefix: { fontSize: 16, color: C.sub },
+  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
   calcBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#EFF6FF', borderRadius: 10, padding: 12, marginBottom: 20,
+    backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 20,
   },
-  calcText: { color: C.gradEnd, fontWeight: '600', fontSize: 14 },
-  saveBtn: { borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 8 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  calcText: { color: C.accent, fontWeight: '600', fontSize: 14 },
+  saveBtn: {
+    backgroundColor: C.accent, borderRadius: 999,
+    paddingVertical: 18, alignItems: 'center', marginTop: 16,
+  },
+  saveBtnText: { color: C.accentText, fontSize: 16, fontWeight: '800' },
 });

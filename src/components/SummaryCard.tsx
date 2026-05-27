@@ -1,6 +1,7 @@
 // src/components/SummaryCard.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { C } from '../theme';
 
 type Row = { label: string; value: string; highlight?: boolean };
 
@@ -25,14 +26,14 @@ export function fmt(n: number): string {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff', borderRadius: 12,
-    padding: 16, marginVertical: 8,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    backgroundColor: C.card,
+    borderRadius: 20,
+    padding: 20,
+    marginVertical: 8,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  label: { fontSize: 14, color: '#666' },
-  value: { fontSize: 14, color: '#111', fontWeight: '600' },
-  highlight: { color: '#1a6b3c', fontSize: 16, fontWeight: '700' },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  label: { fontSize: 14, color: C.sub },
+  value: { fontSize: 14, color: C.text, fontWeight: '700' },
+  highlight: { color: C.accent, fontSize: 16, fontWeight: '700' },
 });

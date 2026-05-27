@@ -1,13 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert, SafeAreaView,
+  StyleSheet, ScrollView, Alert,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { saveFuelEntry, getFuelEntriesForWeek, deleteFuelEntry } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { fmt } from '../../components/SummaryCard';
@@ -16,7 +16,7 @@ import type { FuelEntry } from '../../types';
 
 export function OwnerOpFuel({ route }: { route: any }) {
   const driverType: string = route?.params?.driverType ?? 'owner-op';
-  const { weekKey, goToPrev, goToNext } = useWeek();
+  const { weekKey } = useWeek();
   const [entries, setEntries] = useState<FuelEntry[]>([]);
   const [fuelType, setFuelType] = useState<'diesel' | 'def'>('diesel');
   const [cost, setCost] = useState('');
@@ -65,18 +65,10 @@ export function OwnerOpFuel({ route }: { route: any }) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={[C.gradStart, C.gradEnd]} style={s.header}>
-        <SafeAreaView>
-          <View style={s.headerInner}>
-            <Text style={s.headerTitle}>Fuel Log</Text>
-          </View>
-          <View style={s.weekNav}>
-            <TouchableOpacity onPress={goToPrev}><Ionicons name="chevron-back" size={20} color="rgba(255,255,255,0.8)" /></TouchableOpacity>
-            <Text style={s.weekLabel}>{formatWeekDisplay(weekKey)}</Text>
-            <TouchableOpacity onPress={goToNext}><Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" /></TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+      <ScreenHeader
+        title="Fuel"
+        subtitle={formatWeekDisplay(weekKey)}
+      />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
@@ -86,12 +78,12 @@ export function OwnerOpFuel({ route }: { route: any }) {
         >
           <View style={s.totalsRow}>
             <View style={s.totalCard}>
-              <Ionicons name="water" size={20} color={C.gradEnd} />
+              <Ionicons name="water" size={20} color={C.accent} />
               <Text style={s.totalValue}>{fmt(totalDiesel)}</Text>
               <Text style={s.totalLabel}>Total Diesel</Text>
             </View>
             <View style={s.totalCard}>
-              <Ionicons name="water-outline" size={20} color={C.gradEnd} />
+              <Ionicons name="water-outline" size={20} color={C.accent} />
               <Text style={s.totalValue}>{fmt(totalDef)}</Text>
               <Text style={s.totalLabel}>Total DEF</Text>
             </View>
@@ -125,10 +117,10 @@ export function OwnerOpFuel({ route }: { route: any }) {
                 />
               </View>
               <TouchableOpacity onPress={handleAdd} activeOpacity={0.85}>
-                <LinearGradient colors={[C.accent, '#059669']} style={s.addBtn}>
-                  <Ionicons name="add" size={20} color="#fff" />
+                <View style={s.addBtn}>
+                  <Ionicons name="add" size={20} color={C.accentText} />
                   <Text style={s.addBtnText}>Add</Text>
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -149,7 +141,7 @@ export function OwnerOpFuel({ route }: { route: any }) {
                 {group.map((entry) => (
                   <View key={entry.id} style={s.entryRow}>
                     <View style={s.entryIconBox}>
-                      <Ionicons name={type === 'diesel' ? 'water' : 'water-outline'} size={16} color={C.gradEnd} />
+                      <Ionicons name={type === 'diesel' ? 'water' : 'water-outline'} size={16} color={C.accent} />
                     </View>
                     <Text style={s.entryCost}>{fmt(entry.cost)}</Text>
                     <Text style={s.entryDate}>
@@ -171,52 +163,46 @@ export function OwnerOpFuel({ route }: { route: any }) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  header: { paddingHorizontal: 20, paddingBottom: 20 },
-  headerInner: { paddingTop: 12, marginBottom: 12 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  weekNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  weekLabel: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
-  body: { padding: 16, paddingBottom: 60 },
-  totalsRow: { flexDirection: 'row', gap: 10, marginBottom: 16, marginTop: -8 },
+  body: { padding: 16, paddingBottom: 140 },
+  totalsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   totalCard: {
-    flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14, alignItems: 'center',
-    shadowColor: '#1E3A8A', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+    flex: 1, backgroundColor: C.card, borderRadius: 16, padding: 14, alignItems: 'center',
   },
   totalValue: { fontSize: 18, fontWeight: '800', color: C.text, marginTop: 6 },
   totalLabel: { fontSize: 11, color: C.sub, marginTop: 2, fontWeight: '600' },
   addCard: {
     backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 20,
-    shadowColor: '#1E3A8A', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2,
   },
   addCardTitle: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5, marginBottom: 12 },
   typeRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   typePill: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.inputBg, alignItems: 'center',
+    flex: 1, paddingVertical: 12, borderRadius: 999,
+    backgroundColor: C.cardElevated, alignItems: 'center',
   },
-  typePillActive: { backgroundColor: C.gradEnd, borderColor: C.gradEnd },
-  typePillText: { fontSize: 14, color: C.sub, fontWeight: '600' },
-  typePillTextActive: { color: '#fff', fontWeight: '700' },
+  typePillActive: { backgroundColor: C.accent },
+  typePillText: { fontSize: 14, color: C.text, fontWeight: '600' },
+  typePillTextActive: { color: C.accentText, fontWeight: '800' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   amountInput: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
-    backgroundColor: C.inputBg, paddingHorizontal: 14,
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.cardElevated, borderRadius: 16, paddingHorizontal: 16,
   },
-  prefix: { fontSize: 16, color: C.sub, marginRight: 6 },
-  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 12, color: C.text },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12 },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  prefix: { fontSize: 16, color: C.sub },
+  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
+  addBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 14,
+  },
+  addBtnText: { color: C.accentText, fontWeight: '800', fontSize: 15 },
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 16, fontWeight: '700', color: C.sub, marginTop: 12 },
   group: { marginBottom: 16 },
   groupTitle: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5, marginBottom: 8 },
   entryRow: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,
-    borderRadius: 12, padding: 12, marginBottom: 6,
-    shadowColor: '#1E3A8A', shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1,
+    borderRadius: 16, padding: 14, marginBottom: 6,
   },
-  entryIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  entryIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   entryCost: { flex: 1, fontSize: 15, fontWeight: '700', color: C.text },
   entryDate: { fontSize: 13, color: C.muted, marginRight: 10 },
   deleteBtn: { padding: 4 },

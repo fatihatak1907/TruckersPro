@@ -79,11 +79,17 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
         truck_payment: e.truckPayment,
         truck_payment_frequency: e.truckPaymentFrequency,
         truck_insurance: e.truckInsurance,
+        truck_insurance_frequency: e.truckInsuranceFrequency,
         trailer_insurance: e.trailerInsurance,
+        trailer_insurance_frequency: e.trailerInsuranceFrequency,
         trailer_lease: e.trailerLease,
+        trailer_lease_frequency: e.trailerLeaseFrequency,
         ifta_cost: e.iftaCost,
+        ifta_cost_frequency: e.iftaCostFrequency,
         admin_fee: e.adminFee,
+        admin_fee_frequency: e.adminFeeFrequency,
         other: e.other,
+        other_frequency: e.otherFrequency,
         start_odometer: e.startOdometer,
         end_odometer: e.endOdometer,
         updated_at: new Date().toISOString(),
@@ -106,12 +112,10 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
       return;
     }
     case 'upsertProfile': {
-      const { error } = await supabase.from('profiles').upsert({
-        user_id: userId,
-        driver_type: op.payload.driverType,
+      const { error } = await supabase.from('profiles').update({
         name: op.payload.name,
         updated_at: new Date().toISOString(),
-      });
+      }).eq('user_id', userId);
       if (error) throw new Error(error.message);
       return;
     }

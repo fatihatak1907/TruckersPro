@@ -84,13 +84,24 @@ export async function deleteWeekData(driverType: string, weekKey: string): Promi
   await syncEngine.enqueue({ kind: 'deleteWeek', payload: { driverType, weekKey } });
 }
 
-export async function saveProfileName(driverType: string, name: string): Promise<void> {
-  await AsyncStorage.setItem(`profile:${driverType}:name`, name);
-  await syncEngine.enqueue({ kind: 'upsertProfile', payload: { driverType, name } });
+export const PROFILE_NAME_KEY = 'profile:name';
+export const PROFILE_DRIVER_TYPE_KEY = 'profile:driver_type';
+
+export async function saveProfileName(name: string): Promise<void> {
+  await AsyncStorage.setItem(PROFILE_NAME_KEY, name);
+  await syncEngine.enqueue({ kind: 'upsertProfile', payload: { name } });
 }
 
-export async function getProfileName(driverType: string): Promise<string> {
-  return (await AsyncStorage.getItem(`profile:${driverType}:name`)) ?? '';
+export async function getProfileName(): Promise<string> {
+  return (await AsyncStorage.getItem(PROFILE_NAME_KEY)) ?? '';
+}
+
+export async function saveDriverType(driverType: string): Promise<void> {
+  await AsyncStorage.setItem(PROFILE_DRIVER_TYPE_KEY, driverType);
+}
+
+export async function getDriverType(): Promise<string | null> {
+  return await AsyncStorage.getItem(PROFILE_DRIVER_TYPE_KEY);
 }
 
 export async function wipeAll(): Promise<void> {
@@ -163,11 +174,17 @@ export async function pullFromSupabase(userId: string): Promise<void> {
       truckPayment: Number(row.truck_payment),
       truckPaymentFrequency: row.truck_payment_frequency,
       truckInsurance: Number(row.truck_insurance),
+      truckInsuranceFrequency: row.truck_insurance_frequency ?? 'weekly',
       trailerInsurance: Number(row.trailer_insurance),
+      trailerInsuranceFrequency: row.trailer_insurance_frequency ?? 'weekly',
       trailerLease: Number(row.trailer_lease),
+      trailerLeaseFrequency: row.trailer_lease_frequency ?? 'weekly',
       iftaCost: Number(row.ifta_cost),
+      iftaCostFrequency: row.ifta_cost_frequency ?? 'weekly',
       adminFee: Number(row.admin_fee),
+      adminFeeFrequency: row.admin_fee_frequency ?? 'weekly',
       other: Number(row.other),
+      otherFrequency: row.other_frequency ?? 'weekly',
       startOdometer: Number(row.start_odometer),
       endOdometer: Number(row.end_odometer),
     };
@@ -177,8 +194,9 @@ export async function pullFromSupabase(userId: string): Promise<void> {
     );
   }
 
-  // Profiles (one row per driverType)
+  // Profiles (single row per user with driver_type + name)
   for (const row of profRes.data ?? []) {
-    await AsyncStorage.setItem(`profile:${row.driver_type}:name`, row.name);
+    await AsyncStorage.setItem(PROFILE_NAME_KEY, row.name ?? '');
+    await AsyncStorage.setItem(PROFILE_DRIVER_TYPE_KEY, row.driver_type);
   }
 }

@@ -8,19 +8,17 @@ export function calcOwnerOpSummary(
   const weekKey = expenses.weekKey;
   const totalEarnings = loads.reduce((sum, l) => sum + (l.earnings ?? 0) + (l.tonu ?? 0), 0);
 
-  const truckPaymentWeekly =
-    expenses.truckPaymentFrequency === 'monthly'
-      ? expenses.truckPayment / 4.33
-      : expenses.truckPayment;
+  const toWeekly = (amount: number, freq: 'weekly' | 'monthly' | undefined) =>
+    freq === 'monthly' ? amount / 4.33 : amount;
 
   const fixedExpenses =
-    truckPaymentWeekly +
-    expenses.truckInsurance +
-    expenses.trailerInsurance +
-    expenses.trailerLease +
-    expenses.iftaCost +
-    expenses.adminFee +
-    (expenses.other ?? 0);
+    toWeekly(expenses.truckPayment, expenses.truckPaymentFrequency) +
+    toWeekly(expenses.truckInsurance, expenses.truckInsuranceFrequency) +
+    toWeekly(expenses.trailerInsurance, expenses.trailerInsuranceFrequency) +
+    toWeekly(expenses.trailerLease, expenses.trailerLeaseFrequency) +
+    toWeekly(expenses.iftaCost, expenses.iftaCostFrequency) +
+    toWeekly(expenses.adminFee, expenses.adminFeeFrequency) +
+    toWeekly(expenses.other ?? 0, expenses.otherFrequency);
 
   const commissionExpenses = loads.reduce(
     (sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0),

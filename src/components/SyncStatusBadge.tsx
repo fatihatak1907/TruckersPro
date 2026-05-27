@@ -50,9 +50,9 @@ export function SyncStatusBadge() {
       <Ionicons
         name={isError ? 'alert-circle-outline' : 'sync-outline'}
         size={12}
-        color={isError ? '#fff' : 'rgba(255,255,255,0.9)'}
+        color={isError ? '#fff' : C.accent}
       />
-      <Text style={s.text}>
+      <Text style={[s.text, isError && s.textError]}>
         {isError ? 'Sync error' : `Syncing ${queueSize}`}
       </Text>
     </TouchableOpacity>
@@ -63,9 +63,10 @@ const s = StyleSheet.create({
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255, 214, 0, 0.18)',
     borderRadius: 999,
   },
   pillError: { backgroundColor: C.danger },
-  text: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  text: { color: C.accent, fontSize: 11, fontWeight: '700' },
+  textError: { color: '#fff' },
 });

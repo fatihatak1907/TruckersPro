@@ -46,12 +46,11 @@ async function enqueueAllLocal(): Promise<void> {
         payload: { ...expenses, driverType },
       });
     } else if (k.startsWith('profile:')) {
-      const [, driverType] = k.split(':');
       const name = await AsyncStorage.getItem(k);
       if (name == null) continue;
       await syncEngine.enqueue({
         kind: 'upsertProfile',
-        payload: { driverType, name },
+        payload: { name },
       });
     }
   }

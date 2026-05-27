@@ -67,3 +67,26 @@ test('Path B: fresh device pulls Supabase data into AsyncStorage', async () => {
   expect(loads[0].id).toBe('load-remote');
   expect(await AsyncStorage.getItem(SYNC_MIGRATED_KEY)).toBe('true');
 });
+
+test('pullFromSupabase writes both driver_type and name from profile row', async () => {
+  const { supabase } = require('../src/supabase/client');
+  const selectChain = (data: any[]) => ({
+    select: () => ({ eq: () => Promise.resolve({ data, error: null }) }),
+  });
+  supabase.from.mockImplementation((table: string) => {
+    if (table === 'profiles') {
+      return selectChain([{
+        user_id: 'user-1',
+        driver_type: 'lease',
+        name: 'Test Driver',
+      }]);
+    }
+    return selectChain([]);
+  });
+
+  const { pullFromSupabase } = require('../src/storage/storage');
+  await pullFromSupabase('user-1');
+
+  expect(await AsyncStorage.getItem('profile:name')).toBe('Test Driver');
+  expect(await AsyncStorage.getItem('profile:driver_type')).toBe('lease');
+});

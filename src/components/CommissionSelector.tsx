@@ -32,13 +32,13 @@ export function CommissionSelector({ label, options, selected, onSelect }: Props
 
 const s = StyleSheet.create({
   container: { marginBottom: 20 },
-  label: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1, marginBottom: 10 },
+  label: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5, marginBottom: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
-    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 24,
-    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.inputBg,
+    paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999,
+    backgroundColor: C.card,
   },
-  pillSelected: { backgroundColor: C.gradEnd, borderColor: C.gradEnd },
-  pillText: { fontSize: 14, color: C.sub, fontWeight: '600' },
-  pillTextSelected: { color: '#fff', fontWeight: '700' },
+  pillSelected: { backgroundColor: C.accent },
+  pillText: { fontSize: 14, color: C.text, fontWeight: '600' },
+  pillTextSelected: { color: C.accentText, fontWeight: '700' },
 });

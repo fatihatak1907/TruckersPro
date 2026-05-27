@@ -130,3 +130,29 @@ describe('storage enqueues sync ops', () => {
     expect(last.op.payload.id).toBe('load-1');
   });
 });
+
+describe('profile API v2 (no driverType arg)', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  test('saveProfileName / getProfileName round-trip without driverType arg', async () => {
+    const { saveProfileName, getProfileName } = require('../src/storage/storage');
+    await saveProfileName('Fatih');
+    const got = await getProfileName();
+    expect(got).toBe('Fatih');
+  });
+
+  test('saveDriverType / getDriverType round-trip', async () => {
+    const { saveDriverType, getDriverType } = require('../src/storage/storage');
+    await saveDriverType('owner-op');
+    const got = await getDriverType();
+    expect(got).toBe('owner-op');
+  });
+
+  test('getDriverType returns null when unset', async () => {
+    const { getDriverType } = require('../src/storage/storage');
+    const got = await getDriverType();
+    expect(got).toBeNull();
+  });
+});

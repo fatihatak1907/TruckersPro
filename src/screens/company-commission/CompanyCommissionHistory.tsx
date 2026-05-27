@@ -3,10 +3,10 @@ import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, Alert, StatusBar,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { getLoadsForWeek, getAllWeekKeys, deleteLoad, deleteWeekData } from '../../storage/storage';
 import { calcCompanyCommissionSummary } from '../../utils/calculations';
 import { formatWeekDisplay } from '../../context/WeekContext';
@@ -81,12 +81,10 @@ export function CompanyCommissionHistory({ navigation }: Props) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={[C.gradStart, C.gradEnd]} style={s.header}>
-        <View style={{ paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20 }}>
-          <Text style={s.headerTitle}>History</Text>
-          <Text style={s.headerSub}>Commission Driver — all weeks</Text>
-        </View>
-      </LinearGradient>
+      <ScreenHeader
+        title="History"
+        subtitle="Company Commission — all weeks"
+      />
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
         {weeks.length === 0 && (
@@ -101,7 +99,7 @@ export function CompanyCommissionHistory({ navigation }: Props) {
           <View key={wk} style={s.weekCard}>
             <TouchableOpacity style={s.weekHeader} onPress={() => toggleWeek(wk)} activeOpacity={0.7}>
               <View style={s.weekIconBox}>
-                <Ionicons name="calendar-outline" size={18} color={C.gradEnd} />
+                <Ionicons name="calendar-outline" size={18} color={C.accent} />
               </View>
               <View style={s.weekLabelBox}>
                 <Text style={s.weekLabel}>{formatWeekDisplay(wk)}</Text>
@@ -119,7 +117,7 @@ export function CompanyCommissionHistory({ navigation }: Props) {
 
             {expanded === wk && weekData[wk] && (
               <View style={s.weekContent}>
-                <LinearGradient colors={['#EFF6FF', '#DBEAFE']} style={s.summaryStrip}>
+                <View style={s.summaryStrip}>
                   <View style={s.summaryItem}>
                     <Text style={s.summaryLabel}>Earnings</Text>
                     <Text style={s.summaryValue}>{fmt(weekData[wk].totalEarnings)}</Text>
@@ -129,11 +127,11 @@ export function CompanyCommissionHistory({ navigation }: Props) {
                     <Text style={s.summaryLabel}>Loads</Text>
                     <Text style={s.summaryValue}>{weekData[wk].loads.length}</Text>
                   </View>
-                </LinearGradient>
+                </View>
 
                 <View style={s.netRow}>
                   <Text style={s.netLabel}>Net Profit</Text>
-                  <Text style={[s.netValue, { color: weekData[wk].netProfit >= 0 ? C.accent : C.danger }]}>
+                  <Text style={[s.netValue, { color: weekData[wk].netProfit >= 0 ? C.success : C.danger }]}>
                     {fmt(weekData[wk].netProfit)}
                   </Text>
                 </View>
@@ -145,7 +143,7 @@ export function CompanyCommissionHistory({ navigation }: Props) {
                       <View key={load.id} style={s.loadCard}>
                         <View style={s.loadTop}>
                           <View style={s.routeBadge}>
-                            <Ionicons name="navigate-outline" size={12} color={C.gradEnd} />
+                            <Ionicons name="navigate-outline" size={12} color={C.accent} />
                           </View>
                           <Text style={s.loadRoute}>{load.startLocation} → {load.endLocation}</Text>
                         </View>
@@ -154,7 +152,7 @@ export function CompanyCommissionHistory({ navigation }: Props) {
                         </Text>
                         <View style={s.loadActions}>
                           <TouchableOpacity style={s.editBtn} onPress={() => handleEditLoad(load)}>
-                            <Ionicons name="pencil-outline" size={13} color={C.gradEnd} />
+                            <Ionicons name="pencil-outline" size={13} color={C.accent} />
                             <Text style={s.editBtnText}>Edit</Text>
                           </TouchableOpacity>
                           <TouchableOpacity style={s.deleteBtn} onPress={() => handleDeleteLoad(load)}>
@@ -177,43 +175,39 @@ export function CompanyCommissionHistory({ navigation }: Props) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  header: {},
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  body: { padding: 16, paddingBottom: 40 },
+  body: { padding: 16, paddingBottom: 140 },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyText: { fontSize: 16, fontWeight: '700', color: C.sub, marginTop: 12 },
   emptySub: { fontSize: 13, color: C.muted, marginTop: 4 },
   weekCard: {
-    backgroundColor: C.card, borderRadius: 16, marginBottom: 12,
-    shadowColor: '#1E3A8A', shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+    backgroundColor: C.card, borderRadius: 20, marginBottom: 12,
     overflow: 'hidden',
   },
   weekHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
-  weekIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
+  weekIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center' },
   weekLabelBox: { flex: 1 },
   weekLabel: { fontSize: 15, fontWeight: '700', color: C.text },
-  weekSub: { fontSize: 12, color: C.muted, marginTop: 1 },
-  deleteWeekBtn: { padding: 6, backgroundColor: '#FEF2F2', borderRadius: 8 },
+  weekSub: { fontSize: 12, color: C.sub, marginTop: 1 },
+  deleteWeekBtn: { padding: 6, backgroundColor: C.cardElevated, borderRadius: 8 },
   weekContent: { paddingHorizontal: 14, paddingBottom: 14 },
-  summaryStrip: { flexDirection: 'row', borderRadius: 12, padding: 12, marginBottom: 10 },
+  summaryStrip: { flexDirection: 'row', borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: C.cardElevated },
   summaryItem: { flex: 1, alignItems: 'center' },
   summaryLabel: { fontSize: 11, color: C.sub, fontWeight: '600' },
   summaryValue: { fontSize: 14, fontWeight: '800', color: C.text, marginTop: 2 },
-  summaryDivider: { width: 1, backgroundColor: '#BFDBFE', marginHorizontal: 4 },
+  summaryDivider: { width: 1, backgroundColor: C.border, marginHorizontal: 4 },
   netRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 2 },
   netLabel: { fontSize: 14, fontWeight: '700', color: C.sub },
   netValue: { fontSize: 20, fontWeight: '900' },
   loadsTitle: { fontSize: 13, fontWeight: '700', color: C.sub, marginBottom: 8, letterSpacing: 0.5 },
-  loadCard: { backgroundColor: C.bg, borderRadius: 12, padding: 12, marginBottom: 8 },
+  loadCard: { backgroundColor: C.cardElevated, borderRadius: 14, padding: 12, marginBottom: 8 },
   loadTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  routeBadge: { width: 24, height: 24, borderRadius: 6, backgroundColor: '#DBEAFE', alignItems: 'center', justifyContent: 'center' },
+  routeBadge: { width: 24, height: 24, borderRadius: 6, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
   loadRoute: { fontSize: 14, fontWeight: '700', color: C.text, flex: 1 },
   loadDetail: { fontSize: 12, color: C.sub, marginBottom: 8 },
   bold: { fontWeight: '700', color: C.text },
   loadActions: { flexDirection: 'row', gap: 8 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#EFF6FF', borderRadius: 8 },
-  editBtnText: { color: C.gradEnd, fontSize: 12, fontWeight: '600' },
-  deleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#FEF2F2', borderRadius: 8 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: C.card, borderRadius: 8 },
+  editBtnText: { color: C.accent, fontSize: 12, fontWeight: '600' },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: C.card, borderRadius: 8 },
   deleteBtnText: { color: C.danger, fontSize: 12, fontWeight: '600' },
 });

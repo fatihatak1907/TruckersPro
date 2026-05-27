@@ -22,16 +22,24 @@ export type FuelEntry = {
   createdAt: string;
 };
 
+export type Frequency = 'weekly' | 'monthly';
+
 export type WeeklyExpenses = {
   weekKey: string;
   truckPayment: number;
-  truckPaymentFrequency: 'weekly' | 'monthly';
+  truckPaymentFrequency: Frequency;
   truckInsurance: number;
+  truckInsuranceFrequency: Frequency;
   trailerInsurance: number;
+  trailerInsuranceFrequency: Frequency;
   trailerLease: number;
+  trailerLeaseFrequency: Frequency;
   iftaCost: number;
+  iftaCostFrequency: Frequency;
   adminFee: number;
+  adminFeeFrequency: Frequency;
   other: number;
+  otherFrequency: Frequency;
   startOdometer: number;
   endOdometer: number;
 };

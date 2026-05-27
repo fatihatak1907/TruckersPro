@@ -97,6 +97,27 @@ test('flush leaves op in queue and records error on failure', async () => {
   expect(queue[0].lastError).toBe('boom');
 });
 
+test('upsertProfile sends UPDATE with name only', async () => {
+  const updateMock = jest.fn().mockReturnValue({ eq: jest.fn(() => Promise.resolve({ error: null })) });
+  const fromMock = jest.fn(() => ({ update: updateMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(fromMock);
+  supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+  await syncEngine.enqueue({
+    kind: 'upsertProfile',
+    payload: { name: 'Fatih' },
+  });
+
+  await syncEngine.flush();
+
+  expect(fromMock).toHaveBeenCalledWith('profiles');
+  expect(updateMock).toHaveBeenCalledTimes(1);
+  const arg = updateMock.mock.calls[0][0];
+  expect(arg.name).toBe('Fatih');
+  expect(arg.driver_type).toBeUndefined();
+});
+
 test('flush is a no-op when no user is signed in', async () => {
   const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
   const { supabase } = require('../src/supabase/client');
