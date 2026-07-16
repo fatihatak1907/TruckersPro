@@ -6,11 +6,38 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { v4 as uuidv4 } from 'uuid';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { saveWeeklyExpenses, getWeeklyExpenses } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
+import { fmt } from '../../utils/format';
 import { C } from '../../theme';
-import type { WeeklyExpenses, Frequency } from '../../types';
+import type { WeeklyExpenses, Frequency, OtherExpense } from '../../types';
+
+const EMPTY: WeeklyExpenses = {
+  weekKey: '',
+  truckPayment: 0, truckPaymentFrequency: 'weekly',
+  truckInsurance: 0, truckInsuranceFrequency: 'weekly',
+  trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
+  trailerLease: 0, trailerLeaseFrequency: 'weekly',
+  iftaCost: 0, iftaCostFrequency: 'weekly',
+  adminFee: 0, adminFeeFrequency: 'weekly',
+  other: 0, otherFrequency: 'weekly',
+  otherExpenses: [],
+  startOdometer: 0, endOdometer: 0,
+};
+
+type AmountKey = 'truckPayment' | 'truckInsurance' | 'trailerInsurance' | 'trailerLease' | 'iftaCost' | 'adminFee';
+type FreqKey = `${AmountKey}Frequency`;
+
+const FIXED_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
+  { key: 'truckPayment',     freqKey: 'truckPaymentFrequency',     label: 'TRUCK PAYMENT' },
+  { key: 'truckInsurance',   freqKey: 'truckInsuranceFrequency',   label: 'TRUCK INSURANCE' },
+  { key: 'trailerInsurance', freqKey: 'trailerInsuranceFrequency', label: 'TRAILER INSURANCE' },
+  { key: 'trailerLease',     freqKey: 'trailerLeaseFrequency',     label: 'TRAILER LEASE' },
+  { key: 'iftaCost',         freqKey: 'iftaCostFrequency',         label: 'IFTA STICKER COST' },
+  { key: 'adminFee',         freqKey: 'adminFeeFrequency',         label: 'ADMIN FEE' },
+];
 
 function FreqToggle({ value, onChange }: { value: Frequency; onChange: (v: Frequency) => void }) {
   return (
@@ -31,29 +58,153 @@ function FreqToggle({ value, onChange }: { value: Frequency; onChange: (v: Frequ
   );
 }
 
-function ExpenseRow({
-  label, amount, onAmountChange, frequency, onFrequencyChange,
-}: {
+type ConfirmedAmountFieldProps = {
   label: string;
-  amount: string;
-  onAmountChange: (v: string) => void;
-  frequency: Frequency;
-  onFrequencyChange: (v: Frequency) => void;
-}) {
+  amount: number;                 // saved value; 0 = empty
+  frequency?: Frequency;          // omit for odometers
+  money?: boolean;                // $ prefix + decimal pad (default true)
+  placeholder?: string;
+  onCommit: (amount: number, frequency: Frequency) => void;
+  onDelete: () => void;
+};
+
+function ConfirmedAmountField({
+  label, amount, frequency, money = true, placeholder = '0.00', onCommit, onDelete,
+}: ConfirmedAmountFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [draftFreq, setDraftFreq] = useState<Frequency>(frequency ?? 'weekly');
+  const showFreq = frequency !== undefined;
+  const locked = amount > 0 && !editing;
+
+  function startEdit() {
+    setDraft(amount > 0 ? String(amount) : '');
+    setDraftFreq(frequency ?? 'weekly');
+    setEditing(true);
+  }
+
+  function confirm() {
+    onCommit(parseFloat(draft) || 0, draftFreq);
+    setEditing(false);
+    setDraft('');
+  }
+
+  function confirmDelete() {
+    Alert.alert(`Remove ${label.toLowerCase()}?`, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: onDelete },
+    ]);
+  }
+
+  if (locked) {
+    return (
+      <View style={s.expenseBlock}>
+        <Text style={s.fieldLabel}>{label}</Text>
+        <View style={s.lockedRow}>
+          <Ionicons name="checkmark-circle" size={18} color={C.success} />
+          <Text style={s.lockedValue}>
+            {money ? fmt(amount) : amount.toLocaleString()}
+          </Text>
+          {showFreq && (
+            <View style={s.freqBadge}>
+              <Text style={s.freqBadgeText}>{frequency === 'monthly' ? 'M' : 'W'}</Text>
+            </View>
+          )}
+          <View style={s.lockedActions}>
+            <TouchableOpacity style={s.iconBtn} onPress={startEdit}>
+              <Ionicons name="pencil-outline" size={16} color={C.accent} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.iconBtn} onPress={confirmDelete}>
+              <Ionicons name="trash-outline" size={16} color={C.danger} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={s.expenseBlock}>
       <Text style={s.fieldLabel}>{label}</Text>
       <View style={s.inputRow}>
+        {money && <Text style={s.prefix}>$</Text>}
+        <TextInput
+          style={s.inputFlex}
+          value={draft}
+          onChangeText={setDraft}
+          onFocus={() => { if (!editing) startEdit(); }}
+          keyboardType={money ? 'decimal-pad' : 'number-pad'}
+          placeholder={placeholder}
+          placeholderTextColor={C.muted}
+        />
+        {showFreq && <FreqToggle value={draftFreq} onChange={setDraftFreq} />}
+        {editing && amount > 0 && (
+          <TouchableOpacity style={s.cancelBtn} onPress={() => { setEditing(false); setDraft(''); }}>
+            <Ionicons name="close" size={18} color={C.sub} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[s.confirmBtn, !draft && s.confirmBtnDisabled]}
+          onPress={confirm}
+          disabled={!draft}
+        >
+          <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+type OtherEditorProps = {
+  initial?: OtherExpense;
+  onCommit: (entry: OtherExpense) => void;
+  onCancel: () => void;
+};
+
+function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
+  const [name, setName] = useState(initial?.label ?? '');
+  const [draft, setDraft] = useState(initial ? String(initial.amount) : '');
+  const [freq, setFreq] = useState<Frequency>(initial?.frequency ?? 'weekly');
+  const [nameError, setNameError] = useState(false);
+
+  function confirm() {
+    const label = name.trim();
+    if (!label) { setNameError(true); return; }
+    onCommit({
+      id: initial?.id ?? uuidv4(),
+      label,
+      amount: parseFloat(draft) || 0,
+      frequency: freq,
+    });
+  }
+
+  return (
+    <View style={s.otherEditor}>
+      <TextInput
+        style={s.input}
+        value={name}
+        onChangeText={(t) => { setName(t); setNameError(false); }}
+        placeholder="Expense name (e.g. Truck wash)"
+        placeholderTextColor={C.muted}
+      />
+      {nameError && <Text style={s.nameError}>Name required</Text>}
+      <View style={s.inputRow}>
         <Text style={s.prefix}>$</Text>
         <TextInput
           style={s.inputFlex}
-          value={amount}
-          onChangeText={onAmountChange}
+          value={draft}
+          onChangeText={setDraft}
           keyboardType="decimal-pad"
           placeholder="0.00"
           placeholderTextColor={C.muted}
         />
-        <FreqToggle value={frequency} onChange={onFrequencyChange} />
+        <FreqToggle value={freq} onChange={setFreq} />
+        <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
+          <Ionicons name="close" size={18} color={C.sub} />
+        </TouchableOpacity>
+        <TouchableOpacity style={s.confirmBtn} onPress={confirm}>
+          <Ionicons name="checkmark" size={20} color={C.accentText} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -62,94 +213,54 @@ function ExpenseRow({
 export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
   const driverType: string = route?.params?.driverType ?? 'owner-op';
   const { weekKey } = useWeek();
-
-  const [truckPayment, setTruckPayment] = useState('');
-  const [truckPaymentFreq, setTruckPaymentFreq] = useState<Frequency>('weekly');
-  const [truckInsurance, setTruckInsurance] = useState('');
-  const [truckInsuranceFreq, setTruckInsuranceFreq] = useState<Frequency>('weekly');
-  const [trailerInsurance, setTrailerInsurance] = useState('');
-  const [trailerInsuranceFreq, setTrailerInsuranceFreq] = useState<Frequency>('weekly');
-  const [trailerLease, setTrailerLease] = useState('');
-  const [trailerLeaseFreq, setTrailerLeaseFreq] = useState<Frequency>('weekly');
-  const [iftaCost, setIftaCost] = useState('');
-  const [iftaCostFreq, setIftaCostFreq] = useState<Frequency>('weekly');
-  const [adminFee, setAdminFee] = useState('');
-  const [adminFeeFreq, setAdminFeeFreq] = useState<Frequency>('weekly');
-  const [other, setOther] = useState('');
-  const [otherFreq, setOtherFreq] = useState<Frequency>('weekly');
-  const [startOdometer, setStartOdometer] = useState('');
-  const [endOdometer, setEndOdometer] = useState('');
+  const [exp, setExp] = useState<WeeklyExpenses>({ ...EMPTY, weekKey });
+  const [addingOther, setAddingOther] = useState(false);
+  const [editingOtherId, setEditingOtherId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       getWeeklyExpenses(driverType, weekKey).then((saved) => {
-        if (!saved) {
-          setTruckPayment(''); setTruckPaymentFreq('weekly');
-          setTruckInsurance(''); setTruckInsuranceFreq('weekly');
-          setTrailerInsurance(''); setTrailerInsuranceFreq('weekly');
-          setTrailerLease(''); setTrailerLeaseFreq('weekly');
-          setIftaCost(''); setIftaCostFreq('weekly');
-          setAdminFee(''); setAdminFeeFreq('weekly');
-          setOther(''); setOtherFreq('weekly');
-          setStartOdometer(''); setEndOdometer('');
-          return;
-        }
-        setTruckPayment(String(saved.truckPayment));
-        setTruckPaymentFreq(saved.truckPaymentFrequency);
-        setTruckInsurance(String(saved.truckInsurance));
-        setTruckInsuranceFreq(saved.truckInsuranceFrequency ?? 'weekly');
-        setTrailerInsurance(String(saved.trailerInsurance));
-        setTrailerInsuranceFreq(saved.trailerInsuranceFrequency ?? 'weekly');
-        setTrailerLease(String(saved.trailerLease));
-        setTrailerLeaseFreq(saved.trailerLeaseFrequency ?? 'weekly');
-        setIftaCost(String(saved.iftaCost));
-        setIftaCostFreq(saved.iftaCostFrequency ?? 'weekly');
-        setAdminFee(String(saved.adminFee));
-        setAdminFeeFreq(saved.adminFeeFrequency ?? 'weekly');
-        setOther(String(saved.other ?? 0));
-        setOtherFreq(saved.otherFrequency ?? 'weekly');
-        setStartOdometer(String(saved.startOdometer));
-        setEndOdometer(String(saved.endOdometer));
+        setExp(saved ?? { ...EMPTY, weekKey });
+        setAddingOther(false);
+        setEditingOtherId(null);
       });
     }, [weekKey])
   );
 
-  const startOdo = parseFloat(startOdometer) || 0;
-  const endOdo = parseFloat(endOdometer) || 0;
-  const milesDriven = endOdo > startOdo ? endOdo - startOdo : 0;
-  const mileageDeduction = milesDriven * 0.14;
-
-  async function handleSave() {
-    const expenses: WeeklyExpenses = {
-      weekKey,
-      truckPayment: parseFloat(truckPayment) || 0,
-      truckPaymentFrequency: truckPaymentFreq,
-      truckInsurance: parseFloat(truckInsurance) || 0,
-      truckInsuranceFrequency: truckInsuranceFreq,
-      trailerInsurance: parseFloat(trailerInsurance) || 0,
-      trailerInsuranceFrequency: trailerInsuranceFreq,
-      trailerLease: parseFloat(trailerLease) || 0,
-      trailerLeaseFrequency: trailerLeaseFreq,
-      iftaCost: parseFloat(iftaCost) || 0,
-      iftaCostFrequency: iftaCostFreq,
-      adminFee: parseFloat(adminFee) || 0,
-      adminFeeFrequency: adminFeeFreq,
-      other: parseFloat(other) || 0,
-      otherFrequency: otherFreq,
-      startOdometer: startOdo,
-      endOdometer: endOdo,
-    };
-    await saveWeeklyExpenses(driverType, expenses);
-    Alert.alert('Saved', 'Expenses updated.');
+  function persist(updated: WeeklyExpenses) {
+    setExp(updated);
+    saveWeeklyExpenses(driverType, updated);
   }
+
+  function commitField(key: AmountKey, freqKey: FreqKey, amount: number, freq: Frequency) {
+    persist({ ...exp, [key]: amount, [freqKey]: freq } as WeeklyExpenses);
+  }
+
+  function commitOdometer(key: 'startOdometer' | 'endOdometer', value: number) {
+    persist({ ...exp, [key]: value });
+  }
+
+  function commitOther(entry: OtherExpense) {
+    const list = exp.otherExpenses ?? [];
+    const updated = list.some((o) => o.id === entry.id)
+      ? list.map((o) => (o.id === entry.id ? entry : o))
+      : [...list, entry];
+    persist({ ...exp, otherExpenses: updated, other: 0, otherFrequency: 'weekly' });
+    setAddingOther(false);
+    setEditingOtherId(null);
+  }
+
+  function deleteOther(id: string) {
+    persist({ ...exp, otherExpenses: (exp.otherExpenses ?? []).filter((o) => o.id !== id) });
+  }
+
+  const milesDriven = exp.endOdometer > exp.startOdometer ? exp.endOdometer - exp.startOdometer : 0;
+  const mileageDeduction = milesDriven * 0.14;
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
-      <ScreenHeader
-        title="Expenses"
-        subtitle={formatWeekDisplay(weekKey)}
-      />
+      <ScreenHeader title="Expenses" subtitle={formatWeekDisplay(weekKey)} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
@@ -158,32 +269,82 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
           automaticallyAdjustKeyboardInsets={true}
         >
           <Text style={s.sectionTitle}>RECURRING EXPENSES</Text>
-          <ExpenseRow label="TRUCK PAYMENT"     amount={truckPayment}     onAmountChange={setTruckPayment}     frequency={truckPaymentFreq}     onFrequencyChange={setTruckPaymentFreq} />
-          <ExpenseRow label="TRUCK INSURANCE"   amount={truckInsurance}   onAmountChange={setTruckInsurance}   frequency={truckInsuranceFreq}   onFrequencyChange={setTruckInsuranceFreq} />
-          <ExpenseRow label="TRAILER INSURANCE" amount={trailerInsurance} onAmountChange={setTrailerInsurance} frequency={trailerInsuranceFreq} onFrequencyChange={setTrailerInsuranceFreq} />
-          <ExpenseRow label="TRAILER LEASE"     amount={trailerLease}     onAmountChange={setTrailerLease}     frequency={trailerLeaseFreq}     onFrequencyChange={setTrailerLeaseFreq} />
-          <ExpenseRow label="IFTA STICKER COST" amount={iftaCost}         onAmountChange={setIftaCost}         frequency={iftaCostFreq}         onFrequencyChange={setIftaCostFreq} />
-          <ExpenseRow label="ADMIN FEE"         amount={adminFee}         onAmountChange={setAdminFee}         frequency={adminFeeFreq}         onFrequencyChange={setAdminFeeFreq} />
-          <ExpenseRow label="OTHER"             amount={other}            onAmountChange={setOther}            frequency={otherFreq}            onFrequencyChange={setOtherFreq} />
+          {FIXED_FIELDS.map((f) => (
+            <ConfirmedAmountField
+              key={f.key}
+              label={f.label}
+              amount={exp[f.key]}
+              frequency={exp[f.freqKey]}
+              onCommit={(amount, freq) => commitField(f.key, f.freqKey, amount, freq)}
+              onDelete={() => commitField(f.key, f.freqKey, 0, 'weekly')}
+            />
+          ))}
+
+          <Text style={[s.sectionTitle, { marginTop: 16 }]}>OTHER EXPENSES</Text>
+          {(exp.otherExpenses ?? []).map((o) =>
+            editingOtherId === o.id ? (
+              <OtherExpenseEditor
+                key={o.id}
+                initial={o}
+                onCommit={commitOther}
+                onCancel={() => setEditingOtherId(null)}
+              />
+            ) : (
+              <View key={o.id} style={s.lockedRow}>
+                <Ionicons name="checkmark-circle" size={18} color={C.success} />
+                <Text style={s.otherLabel} numberOfLines={1}>{o.label}</Text>
+                <Text style={s.lockedValue}>{fmt(o.amount)}</Text>
+                <View style={s.freqBadge}>
+                  <Text style={s.freqBadgeText}>{o.frequency === 'monthly' ? 'M' : 'W'}</Text>
+                </View>
+                <View style={s.lockedActions}>
+                  <TouchableOpacity style={s.iconBtn} onPress={() => { setEditingOtherId(o.id); setAddingOther(false); }}>
+                    <Ionicons name="pencil-outline" size={16} color={C.accent} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={s.iconBtn}
+                    onPress={() =>
+                      Alert.alert(`Remove ${o.label}?`, undefined, [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Remove', style: 'destructive', onPress: () => deleteOther(o.id) },
+                      ])
+                    }
+                  >
+                    <Ionicons name="trash-outline" size={16} color={C.danger} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )
+          )}
+          {addingOther ? (
+            <OtherExpenseEditor onCommit={commitOther} onCancel={() => setAddingOther(false)} />
+          ) : (
+            <TouchableOpacity
+              style={s.addBtn}
+              onPress={() => { setAddingOther(true); setEditingOtherId(null); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={18} color={C.accent} />
+              <Text style={s.addBtnText}>Add Expense</Text>
+            </TouchableOpacity>
+          )}
 
           <Text style={[s.sectionTitle, { marginTop: 16 }]}>MILEAGE (ODOMETER)</Text>
-          <Text style={s.fieldLabel}>STARTING ODOMETER</Text>
-          <TextInput
-            style={s.input}
-            value={startOdometer}
-            onChangeText={setStartOdometer}
-            keyboardType="number-pad"
+          <ConfirmedAmountField
+            label="STARTING ODOMETER"
+            amount={exp.startOdometer}
+            money={false}
             placeholder="e.g. 100000"
-            placeholderTextColor={C.muted}
+            onCommit={(v) => commitOdometer('startOdometer', v)}
+            onDelete={() => commitOdometer('startOdometer', 0)}
           />
-          <Text style={s.fieldLabel}>ENDING ODOMETER</Text>
-          <TextInput
-            style={s.input}
-            value={endOdometer}
-            onChangeText={setEndOdometer}
-            keyboardType="number-pad"
+          <ConfirmedAmountField
+            label="ENDING ODOMETER"
+            amount={exp.endOdometer}
+            money={false}
             placeholder="e.g. 103500"
-            placeholderTextColor={C.muted}
+            onCommit={(v) => commitOdometer('endOdometer', v)}
+            onDelete={() => commitOdometer('endOdometer', 0)}
           />
 
           {milesDriven > 0 && (
@@ -195,12 +356,6 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
               </View>
             </View>
           )}
-
-          <TouchableOpacity onPress={handleSave} activeOpacity={0.85}>
-            <View style={s.saveBtn}>
-              <Text style={s.saveBtnText}>Save Expenses</Text>
-            </View>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -215,7 +370,7 @@ const s = StyleSheet.create({
   expenseBlock: { marginBottom: 4 },
   input: {
     backgroundColor: C.card, borderRadius: 16,
-    padding: 16, marginBottom: 12,
+    padding: 16, marginBottom: 8,
     fontSize: 16, color: C.text,
   },
   inputRow: {
@@ -225,6 +380,27 @@ const s = StyleSheet.create({
   },
   prefix: { fontSize: 16, color: C.sub },
   inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
+  lockedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.card, borderRadius: 16,
+    paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12,
+  },
+  lockedValue: { fontSize: 16, fontWeight: '800', color: C.text },
+  otherLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: C.text },
+  lockedActions: { flexDirection: 'row', gap: 6, marginLeft: 'auto' },
+  iconBtn: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center',
+  },
+  confirmBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center',
+  },
+  confirmBtnDisabled: { backgroundColor: C.cardElevated },
+  cancelBtn: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center',
+  },
   freqRow: {
     flexDirection: 'row', gap: 4,
     backgroundColor: C.bg, borderRadius: 999,
@@ -238,14 +414,22 @@ const s = StyleSheet.create({
   freqBtnActive: { backgroundColor: C.accent },
   freqText: { fontSize: 11, color: C.sub, fontWeight: '700' },
   freqTextActive: { color: C.accentText, fontWeight: '800' },
+  freqBadge: {
+    width: 24, height: 24, borderRadius: 999,
+    backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center',
+  },
+  freqBadgeText: { fontSize: 10, color: C.sub, fontWeight: '800' },
+  otherEditor: { marginBottom: 4 },
+  nameError: { color: C.danger, fontSize: 12, marginBottom: 8, marginLeft: 4 },
+  addBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: C.card, borderRadius: 16, paddingVertical: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: C.cardElevated, borderStyle: 'dashed',
+  },
+  addBtnText: { color: C.accent, fontSize: 14, fontWeight: '700' },
   calcBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 20, marginTop: 8,
   },
   calcText: { color: C.accent, fontWeight: '600', fontSize: 14, lineHeight: 22 },
-  saveBtn: {
-    backgroundColor: C.accent, borderRadius: 999,
-    paddingVertical: 18, alignItems: 'center', marginTop: 16,
-  },
-  saveBtnText: { color: C.accentText, fontSize: 16, fontWeight: '800' },
 });
