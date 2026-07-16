@@ -14,6 +14,9 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { SignOutButton } from '../../components/SignOutButton';
 import { SyncStatusBadge } from '../../components/SyncStatusBadge';
 import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../../types';
+import { addWeeks } from '../../utils/weekKey';
+import { buildInsight, InsightKind, WeekData } from '../../utils/insights';
+import { InsightsSheet } from '../../components/InsightsSheet';
 
 const EMPTY_EXPENSES: WeeklyExpenses = {
   weekKey: '',
@@ -36,19 +39,30 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
   const [expenses, setExpenses] = useState<WeeklyExpenses>({ ...EMPTY_EXPENSES, weekKey });
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([]);
   const [driverName, setDriverName] = useState('');
+  const [openInsight, setOpenInsight] = useState<InsightKind | null>(null);
+  const [prevWeek, setPrevWeek] = useState<WeekData | null>(null);
 
   useFocusEffect(
     useCallback(() => {
+      const prevKey = addWeeks(weekKey, -1);
       Promise.all([
         getLoadsForWeek(driverType, weekKey),
         getWeeklyExpenses(driverType, weekKey),
         getFuelEntriesForWeek(driverType, weekKey),
         getProfileName(),
-      ]).then(([l, e, f, name]) => {
+        getLoadsForWeek(driverType, prevKey),
+        getWeeklyExpenses(driverType, prevKey),
+        getFuelEntriesForWeek(driverType, prevKey),
+      ]).then(([l, e, f, name, pl, pe, pf]) => {
         setLoads(l);
         setExpenses(e ?? { ...EMPTY_EXPENSES, weekKey });
         setFuelEntries(f);
         setDriverName(name);
+        setPrevWeek({
+          loads: pl,
+          expenses: pe ?? { ...EMPTY_EXPENSES, weekKey: prevKey },
+          fuelEntries: pf,
+        });
       });
     }, [weekKey])
   );
@@ -105,27 +119,29 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
           </TouchableOpacity>
         </View>
 
-        <View style={s.netCard}>
+        <TouchableOpacity style={s.netCard} onPress={() => setOpenInsight('net')} activeOpacity={0.8}>
           <Text style={s.netLabel}>NET PROFIT</Text>
           <Text style={[s.netValue, { color: summary.netProfit >= 0 ? C.success : C.danger }]}>
             {fmt(summary.netProfit)}
           </Text>
-        </View>
+          <Text style={s.tapHint}>Tap for details</Text>
+        </TouchableOpacity>
 
         <View style={s.statsGrid}>
-          {[
-            { label: 'Earnings', value: fmt(summary.totalEarnings), icon: 'trending-up' },
-            { label: 'Expenses', value: fmt(summary.totalExpenses), icon: 'trending-down' },
-            { label: 'Diesel', value: fmt(summary.totalDiesel), icon: 'water' },
-            { label: 'DEF', value: fmt(summary.totalDef), icon: 'water-outline' },
-            { label: 'Miles', value: `${summary.milesDriven.toLocaleString()} mi`, icon: 'speedometer-outline' },
-            { label: 'Mi. Deduct', value: fmt(summary.mileageDeduction), icon: 'remove-circle-outline' },
-          ].map((item) => (
-            <View key={item.label} style={s.statCard}>
+          {([
+            { label: 'Earnings', value: fmt(summary.totalEarnings), icon: 'trending-up', kind: 'earnings' },
+            { label: 'Expenses', value: fmt(summary.totalExpenses), icon: 'trending-down', kind: 'expenses' },
+            { label: 'Diesel', value: fmt(summary.totalDiesel), icon: 'water', kind: 'diesel' },
+            { label: 'DEF', value: fmt(summary.totalDef), icon: 'water-outline', kind: 'def' },
+            { label: 'Miles', value: `${summary.milesDriven.toLocaleString()} mi`, icon: 'speedometer-outline', kind: 'miles' },
+            { label: 'Mi. Deduct', value: fmt(summary.mileageDeduction), icon: 'remove-circle-outline', kind: 'deduction' },
+          ] as { label: string; value: string; icon: string; kind: InsightKind }[]).map((item) => (
+            <TouchableOpacity key={item.label} style={s.statCard} onPress={() => setOpenInsight(item.kind)} activeOpacity={0.8}>
               <Ionicons name={item.icon as any} size={18} color={C.accent} style={s.statIcon} />
               <Text style={s.statValue}>{item.value}</Text>
               <Text style={s.statLabel}>{item.label}</Text>
-            </View>
+              <Ionicons name="chevron-forward" size={12} color={C.muted} style={s.statChevron} />
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -170,6 +186,14 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
           </View>
         )}
       </ScrollView>
+      <InsightsSheet
+        insight={
+          openInsight
+            ? buildInsight(openInsight, { loads, expenses, fuelEntries }, prevWeek)
+            : null
+        }
+        onClose={() => setOpenInsight(null)}
+      />
     </View>
   );
 }
@@ -189,6 +213,7 @@ const s = StyleSheet.create({
   },
   netLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5 },
   netValue: { fontSize: 40, fontWeight: '900', marginTop: 8 },
+  tapHint: { fontSize: 11, color: C.muted, marginTop: 6, fontWeight: '600' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   statCard: {
     flex: 1, minWidth: '30%', backgroundColor: C.card, borderRadius: 18, padding: 12,
@@ -197,6 +222,7 @@ const s = StyleSheet.create({
   statIcon: { marginBottom: 6 },
   statValue: { fontSize: 15, fontWeight: '800', color: C.text },
   statLabel: { fontSize: 11, color: C.sub, marginTop: 2, fontWeight: '600' },
+  statChevron: { position: 'absolute', top: 8, right: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: C.sub, marginBottom: 12 },
   loadCard: {
     backgroundColor: C.card, borderRadius: 20, padding: 14, marginBottom: 10,
