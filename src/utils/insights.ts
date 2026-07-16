@@ -114,9 +114,49 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
         footer.push({ label: 'Cost per mile', value: `${fmt(s.totalExpenses / mi)}/mi` });
       break;
     }
-    // Task 3 adds: earnings, diesel, def, miles, deduction, net
-    default:
+    case 'earnings': {
+      rows = thisWeek.loads.map((l) => ({
+        label: `${l.startLocation} → ${l.endLocation}`,
+        value: fmt(l.earnings ?? 0),
+        ...((l.tonu ?? 0) > 0 ? { sub: `+ ${fmt(l.tonu ?? 0)} TONU` } : {}),
+      }));
+      if (mi > 0)
+        footer.push({ label: 'Earnings per mile', value: `${fmt(s.totalEarnings / mi)}/mi` });
       break;
+    }
+    case 'diesel':
+    case 'def': {
+      const entries = thisWeek.fuelEntries.filter((f) => f.type === kind);
+      rows = entries.map((f) => ({ label: fuelDate(f), value: fmt(f.cost) }));
+      const total = kind === 'diesel' ? s.totalDiesel : s.totalDef;
+      if (mi > 0 && total > 0)
+        footer.push({ label: 'Cost per mile', value: `${fmt(total / mi)}/mi` });
+      break;
+    }
+    case 'miles': {
+      headline = `${mi.toLocaleString()} mi`;
+      rows = [
+        { label: 'Start odometer', value: thisWeek.expenses.startOdometer.toLocaleString() },
+        { label: 'End odometer', value: thisWeek.expenses.endOdometer.toLocaleString() },
+        { label: 'Miles driven', value: `${mi.toLocaleString()} mi` },
+      ];
+      break;
+    }
+    case 'deduction': {
+      rows = [{ label: `${mi.toLocaleString()} mi × $0.14`, value: fmt(s.mileageDeduction) }];
+      break;
+    }
+    case 'net': {
+      rows = [
+        { label: 'Earnings', value: fmt(s.totalEarnings) },
+        { label: 'Expenses', value: `− ${fmt(s.totalExpenses)}` },
+        { label: 'Mileage deduction', value: `− ${fmt(s.mileageDeduction)}` },
+        { label: 'Net profit', value: fmt(s.netProfit) },
+      ];
+      if (s.totalEarnings > 0)
+        footer.push({ label: 'Profit margin', value: `${Math.round((s.netProfit / s.totalEarnings) * 100)}%` });
+      break;
+    }
   }
 
   return { title: TITLES[kind], headline, rows, footer, change };
