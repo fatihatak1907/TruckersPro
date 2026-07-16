@@ -12,7 +12,7 @@ import { saveWeeklyExpenses, getWeeklyExpenses } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { fmt } from '../../utils/format';
 import { C } from '../../theme';
-import type { WeeklyExpenses, Frequency, OtherExpense } from '../../types';
+import type { WeeklyExpenses, Frequency, OtherExpense, OtherFrequency } from '../../types';
 
 const EMPTY: WeeklyExpenses = {
   weekKey: '',
@@ -39,10 +39,11 @@ const FIXED_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
   { key: 'adminFee',         freqKey: 'adminFeeFrequency',         label: 'ADMIN FEE' },
 ];
 
-function FreqToggle({ value, onChange }: { value: Frequency; onChange: (v: Frequency) => void }) {
+function FreqToggle({ value, onChange, allowDaily = false }: { value: Frequency | OtherFrequency; onChange: (v: Frequency | OtherFrequency) => void; allowDaily?: boolean }) {
+  const options = allowDaily ? (['daily', 'weekly', 'monthly'] as const) : (['weekly', 'monthly'] as const);
   return (
     <View style={s.freqRow}>
-      {(['weekly', 'monthly'] as const).map((f) => (
+      {options.map((f) => (
         <TouchableOpacity
           key={f}
           style={[s.freqBtn, value === f && s.freqBtnActive]}
@@ -50,7 +51,7 @@ function FreqToggle({ value, onChange }: { value: Frequency; onChange: (v: Frequ
           activeOpacity={0.8}
         >
           <Text style={[s.freqText, value === f && s.freqTextActive]}>
-            {f === 'weekly' ? 'W' : 'M'}
+            {f === 'daily' ? 'D' : f === 'weekly' ? 'W' : 'M'}
           </Text>
         </TouchableOpacity>
       ))}
@@ -137,7 +138,7 @@ function ConfirmedAmountField({
           placeholder={placeholder}
           placeholderTextColor={C.muted}
         />
-        {showFreq && <FreqToggle value={draftFreq} onChange={setDraftFreq} />}
+        {showFreq && <FreqToggle value={draftFreq} onChange={setDraftFreq as (v: Frequency | OtherFrequency) => void} />}
         {editing && amount > 0 && (
           <TouchableOpacity style={s.cancelBtn} onPress={() => { setEditing(false); setDraft(''); }}>
             <Ionicons name="close" size={18} color={C.sub} />
@@ -164,7 +165,7 @@ type OtherEditorProps = {
 function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
   const [name, setName] = useState(initial?.label ?? '');
   const [draft, setDraft] = useState(initial ? String(initial.amount) : '');
-  const [freq, setFreq] = useState<Frequency>(initial?.frequency ?? 'weekly');
+  const [freq, setFreq] = useState<OtherFrequency>(initial?.frequency ?? 'weekly');
   const [nameError, setNameError] = useState(false);
   const valid = (parseFloat(draft) || 0) > 0;
 
@@ -199,7 +200,7 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
           placeholder="0.00"
           placeholderTextColor={C.muted}
         />
-        <FreqToggle value={freq} onChange={setFreq} />
+        <FreqToggle value={freq} onChange={setFreq} allowDaily={true} />
         <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
           <Ionicons name="close" size={18} color={C.sub} />
         </TouchableOpacity>

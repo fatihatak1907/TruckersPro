@@ -24,11 +24,13 @@ export type FuelEntry = {
 
 export type Frequency = 'weekly' | 'monthly';
 
+export type OtherFrequency = 'daily' | 'weekly' | 'monthly';
+
 export type OtherExpense = {
   id: string;
   label: string;
   amount: number;
-  frequency: Frequency;
+  frequency: OtherFrequency;
 };
 
 export type WeeklyExpenses = {

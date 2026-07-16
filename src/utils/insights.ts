@@ -1,4 +1,4 @@
-import type { LoadEntry, WeeklyExpenses, FuelEntry, Frequency } from '../types';
+import type { LoadEntry, WeeklyExpenses, FuelEntry, Frequency, OtherFrequency } from '../types';
 import { calcOwnerOpSummary, normalizeExpenses } from './calculations';
 import { fmt } from './format';
 
@@ -36,8 +36,8 @@ const TITLES: Record<InsightKind, string> = {
   deduction: 'Mileage Deduction',
 };
 
-const toWeekly = (amount: number, freq: Frequency | undefined) =>
-  freq === 'monthly' ? amount / 4.33 : amount;
+const toWeekly = (amount: number, freq: Frequency | OtherFrequency | undefined) =>
+  freq === 'monthly' ? amount / 4.33 : freq === 'daily' ? amount * 7 : amount;
 
 function metric(kind: InsightKind, w: WeekData): number {
   const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries);
@@ -79,7 +79,7 @@ function expenseRows(w: WeekData): InsightRow[] {
   const e = normalizeExpenses(w.expenses);
   const commission = w.loads.reduce((sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0), 0);
 
-  const items: { label: string; weekly: number; freq: Frequency }[] = [
+  const items: { label: string; weekly: number; freq: Frequency | OtherFrequency }[] = [
     { label: 'Truck payment', weekly: toWeekly(e.truckPayment, e.truckPaymentFrequency), freq: e.truckPaymentFrequency },
     { label: 'Truck insurance', weekly: toWeekly(e.truckInsurance, e.truckInsuranceFrequency), freq: e.truckInsuranceFrequency },
     { label: 'Trailer insurance', weekly: toWeekly(e.trailerInsurance, e.trailerInsuranceFrequency), freq: e.trailerInsuranceFrequency },

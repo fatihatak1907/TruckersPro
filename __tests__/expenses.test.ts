@@ -89,3 +89,23 @@ describe('getWeeklyExpenses normalization', () => {
     expect(e.other).toBe(0);
   });
 });
+
+describe('daily other expenses', () => {
+  it('converts daily to weekly at ×7', () => {
+    const e = makeExpenses({
+      otherExpenses: [{ id: 'a', label: 'Parking', amount: 10, frequency: 'daily' }],
+    });
+    expect(calcOwnerOpSummary([], e).totalExpenses).toBeCloseTo(70);
+  });
+
+  it('sums a mixed D/W/M list', () => {
+    const e = makeExpenses({
+      otherExpenses: [
+        { id: 'a', label: 'Parking', amount: 10, frequency: 'daily' },   // 70
+        { id: 'b', label: 'Wash', amount: 30, frequency: 'weekly' },     // 30
+        { id: 'c', label: 'Parts', amount: 433, frequency: 'monthly' },  // 100
+      ],
+    });
+    expect(calcOwnerOpSummary([], e).totalExpenses).toBeCloseTo(200);
+  });
+});

@@ -1,7 +1,7 @@
-import type { LoadEntry, WeeklyExpenses, FuelEntry, OwnerOpWeeklySummary, CompanyMileWeeklySummary, CompanyCommissionWeeklySummary } from '../types';
+import type { LoadEntry, WeeklyExpenses, FuelEntry, OwnerOpWeeklySummary, CompanyMileWeeklySummary, CompanyCommissionWeeklySummary, OtherFrequency } from '../types';
 
-const toWeekly = (amount: number, freq: 'weekly' | 'monthly' | undefined) =>
-  freq === 'monthly' ? amount / 4.33 : amount;
+const toWeekly = (amount: number, freq: OtherFrequency | undefined) =>
+  freq === 'monthly' ? amount / 4.33 : freq === 'daily' ? amount * 7 : amount;
 
 export function normalizeExpenses(e: WeeklyExpenses): WeeklyExpenses {
   const otherExpenses = e.otherExpenses ?? [];
