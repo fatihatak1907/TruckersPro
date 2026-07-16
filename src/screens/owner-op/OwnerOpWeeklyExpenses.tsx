@@ -166,6 +166,7 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
   const [draft, setDraft] = useState(initial ? String(initial.amount) : '');
   const [freq, setFreq] = useState<Frequency>(initial?.frequency ?? 'weekly');
   const [nameError, setNameError] = useState(false);
+  const valid = (parseFloat(draft) || 0) > 0;
 
   function confirm() {
     const label = name.trim();
@@ -203,11 +204,11 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
           <Ionicons name="close" size={18} color={C.sub} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[s.confirmBtn, !draft && s.confirmBtnDisabled]}
+          style={[s.confirmBtn, !valid && s.confirmBtnDisabled]}
           onPress={confirm}
-          disabled={!draft}
+          disabled={!valid}
         >
-          <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
+          <Ionicons name="checkmark" size={20} color={valid ? C.accentText : C.muted} />
         </TouchableOpacity>
       </View>
     </View>
