@@ -24,6 +24,13 @@ export type FuelEntry = {
 
 export type Frequency = 'weekly' | 'monthly';
 
+export type OtherExpense = {
+  id: string;
+  label: string;
+  amount: number;
+  frequency: Frequency;
+};
+
 export type WeeklyExpenses = {
   weekKey: string;
   truckPayment: number;
@@ -40,6 +47,7 @@ export type WeeklyExpenses = {
   adminFeeFrequency: Frequency;
   other: number;
   otherFrequency: Frequency;
+  otherExpenses?: OtherExpense[];
   startOdometer: number;
   endOdometer: number;
 };
