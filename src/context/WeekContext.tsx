@@ -1,11 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { getCurrentWeekKey } from '../utils/weekKey';
-
-function addWeeks(weekKey: string, delta: number): string {
-  const d = new Date(weekKey + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + delta * 7);
-  return d.toISOString().slice(0, 10);
-}
+import { getCurrentWeekKey, addWeeks } from '../utils/weekKey';
 
 export function formatWeekDisplay(weekKey: string): string {
   const mon = new Date(weekKey + 'T00:00:00Z');

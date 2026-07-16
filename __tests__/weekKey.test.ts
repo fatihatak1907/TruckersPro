@@ -22,3 +22,14 @@ describe('getCurrentWeekKey', () => {
     expect(getCurrentWeekKey()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
+
+import { addWeeks } from '../src/utils/weekKey';
+
+describe('addWeeks', () => {
+  it('goes back one week', () => {
+    expect(addWeeks('2026-07-13', -1)).toBe('2026-07-06');
+  });
+  it('goes forward one week across a month boundary', () => {
+    expect(addWeeks('2026-06-29', 1)).toBe('2026-07-06');
+  });
+});
