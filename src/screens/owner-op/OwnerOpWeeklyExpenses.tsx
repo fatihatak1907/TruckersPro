@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { ConfirmedAmountField, FreqToggle } from '../../components/ConfirmedAmountField';
 import { saveWeeklyExpenses, getWeeklyExpenses } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { fmt } from '../../utils/format';
@@ -38,123 +39,6 @@ const FIXED_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
   { key: 'iftaCost',         freqKey: 'iftaCostFrequency',         label: 'IFTA STICKER COST' },
   { key: 'adminFee',         freqKey: 'adminFeeFrequency',         label: 'ADMIN FEE' },
 ];
-
-function FreqToggle({ value, onChange, allowDaily = false }: { value: Frequency | OtherFrequency; onChange: (v: Frequency | OtherFrequency) => void; allowDaily?: boolean }) {
-  const options = allowDaily ? (['daily', 'weekly', 'monthly'] as const) : (['weekly', 'monthly'] as const);
-  return (
-    <View style={s.freqRow}>
-      {options.map((f) => (
-        <TouchableOpacity
-          key={f}
-          style={[s.freqBtn, value === f && s.freqBtnActive]}
-          onPress={() => onChange(f)}
-          activeOpacity={0.8}
-        >
-          <Text style={[s.freqText, value === f && s.freqTextActive]}>
-            {f === 'daily' ? 'D' : f === 'weekly' ? 'W' : 'M'}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-}
-
-type ConfirmedAmountFieldProps = {
-  label: string;
-  amount: number;                 // saved value; 0 = empty
-  frequency?: Frequency;          // omit for odometers
-  money?: boolean;                // $ prefix + decimal pad (default true)
-  placeholder?: string;
-  onCommit: (amount: number, frequency: Frequency) => void;
-  onDelete: () => void;
-};
-
-function ConfirmedAmountField({
-  label, amount, frequency, money = true, placeholder = '0.00', onCommit, onDelete,
-}: ConfirmedAmountFieldProps) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
-  const [draftFreq, setDraftFreq] = useState<Frequency>(frequency ?? 'weekly');
-  const showFreq = frequency !== undefined;
-  const locked = amount > 0 && !editing;
-
-  function startEdit() {
-    setDraft(amount > 0 ? String(amount) : '');
-    setDraftFreq(frequency ?? 'weekly');
-    setEditing(true);
-  }
-
-  function confirm() {
-    onCommit(parseFloat(draft) || 0, draftFreq);
-    setEditing(false);
-    setDraft('');
-  }
-
-  function confirmDelete() {
-    Alert.alert(`Remove ${label.toLowerCase()}?`, undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: onDelete },
-    ]);
-  }
-
-  if (locked) {
-    return (
-      <View style={s.expenseBlock}>
-        <Text style={s.fieldLabel}>{label}</Text>
-        <View style={s.lockedRow}>
-          <Ionicons name="checkmark-circle" size={18} color={C.success} />
-          <Text style={s.lockedValue}>
-            {money ? fmt(amount) : amount.toLocaleString()}
-          </Text>
-          {showFreq && (
-            <View style={s.freqBadge}>
-              <Text style={s.freqBadgeText}>{frequency === 'monthly' ? 'M' : 'W'}</Text>
-            </View>
-          )}
-          <View style={s.lockedActions}>
-            <TouchableOpacity style={s.iconBtn} onPress={startEdit}>
-              <Ionicons name="pencil-outline" size={16} color={C.accent} />
-            </TouchableOpacity>
-            <TouchableOpacity style={s.iconBtn} onPress={confirmDelete}>
-              <Ionicons name="trash-outline" size={16} color={C.danger} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={s.expenseBlock}>
-      <Text style={s.fieldLabel}>{label}</Text>
-      <View style={s.inputRow}>
-        {money && <Text style={s.prefix}>$</Text>}
-        <TextInput
-          style={s.inputFlex}
-          value={draft}
-          onChangeText={setDraft}
-          onFocus={() => { if (!editing) startEdit(); }}
-          keyboardType={money ? 'decimal-pad' : 'number-pad'}
-          placeholder={placeholder}
-          placeholderTextColor={C.muted}
-        />
-        {showFreq && <FreqToggle value={draftFreq} onChange={setDraftFreq as (v: Frequency | OtherFrequency) => void} />}
-        {editing && amount > 0 && (
-          <TouchableOpacity style={s.cancelBtn} onPress={() => { setEditing(false); setDraft(''); }}>
-            <Ionicons name="close" size={18} color={C.sub} />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[s.confirmBtn, !draft && s.confirmBtnDisabled]}
-          onPress={confirm}
-          disabled={!draft}
-        >
-          <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
 
 type OtherEditorProps = {
   initial?: OtherExpense;
@@ -200,7 +84,12 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
           placeholder="0.00"
           placeholderTextColor={C.muted}
         />
-        <FreqToggle value={freq} onChange={setFreq} allowDaily={true} />
+        <FreqToggle
+          value={freq}
+          onChange={setFreq}
+          options={['daily', 'weekly', 'monthly'] as const}
+          labels={{ daily: 'D', weekly: 'W', monthly: 'M' }}
+        />
         <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
           <Ionicons name="close" size={18} color={C.sub} />
         </TouchableOpacity>
@@ -301,7 +190,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
                 <Text style={s.otherLabel} numberOfLines={1}>{o.label}</Text>
                 <Text style={s.lockedValue}>{fmt(o.amount)}</Text>
                 <View style={s.freqBadge}>
-                  <Text style={s.freqBadgeText}>{o.frequency === 'monthly' ? 'M' : 'W'}</Text>
+                  <Text style={s.freqBadgeText}>{o.frequency === 'monthly' ? 'M' : o.frequency === 'daily' ? 'D' : 'W'}</Text>
                 </View>
                 <View style={s.lockedActions}>
                   <TouchableOpacity style={s.iconBtn} onPress={() => { setEditingOtherId(o.id); setAddingOther(false); }}>
@@ -374,8 +263,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   form: { padding: 20, paddingBottom: 140 },
   sectionTitle: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5, marginBottom: 12, marginTop: 8 },
-  fieldLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1, marginBottom: 6, marginTop: 4 },
-  expenseBlock: { marginBottom: 4 },
   input: {
     backgroundColor: C.card, borderRadius: 16,
     padding: 16, marginBottom: 8,
@@ -409,19 +296,6 @@ const s = StyleSheet.create({
     width: 34, height: 34, borderRadius: 10,
     backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center',
   },
-  freqRow: {
-    flexDirection: 'row', gap: 4,
-    backgroundColor: C.bg, borderRadius: 999,
-    padding: 3,
-  },
-  freqBtn: {
-    width: 32, height: 28,
-    borderRadius: 999,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  freqBtnActive: { backgroundColor: C.accent },
-  freqText: { fontSize: 11, color: C.sub, fontWeight: '700' },
-  freqTextActive: { color: C.accentText, fontWeight: '800' },
   freqBadge: {
     width: 24, height: 24, borderRadius: 999,
     backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center',
