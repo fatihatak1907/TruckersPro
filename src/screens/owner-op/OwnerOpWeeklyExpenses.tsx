@@ -202,8 +202,12 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
         <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
           <Ionicons name="close" size={18} color={C.sub} />
         </TouchableOpacity>
-        <TouchableOpacity style={s.confirmBtn} onPress={confirm}>
-          <Ionicons name="checkmark" size={20} color={C.accentText} />
+        <TouchableOpacity
+          style={[s.confirmBtn, !draft && s.confirmBtnDisabled]}
+          onPress={confirm}
+          disabled={!draft}
+        >
+          <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
         </TouchableOpacity>
       </View>
     </View>
@@ -271,7 +275,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
           <Text style={s.sectionTitle}>RECURRING EXPENSES</Text>
           {FIXED_FIELDS.map((f) => (
             <ConfirmedAmountField
-              key={f.key}
+              key={`${f.key}:${weekKey}`}
               label={f.label}
               amount={exp[f.key]}
               frequency={exp[f.freqKey]}
@@ -284,7 +288,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
           {(exp.otherExpenses ?? []).map((o) =>
             editingOtherId === o.id ? (
               <OtherExpenseEditor
-                key={o.id}
+                key={`${o.id}:${weekKey}`}
                 initial={o}
                 onCommit={commitOther}
                 onCancel={() => setEditingOtherId(null)}
@@ -317,7 +321,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
             )
           )}
           {addingOther ? (
-            <OtherExpenseEditor onCommit={commitOther} onCancel={() => setAddingOther(false)} />
+            <OtherExpenseEditor key={`add-other:${weekKey}`} onCommit={commitOther} onCancel={() => setAddingOther(false)} />
           ) : (
             <TouchableOpacity
               style={s.addBtn}
@@ -331,6 +335,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
 
           <Text style={[s.sectionTitle, { marginTop: 16 }]}>MILEAGE (ODOMETER)</Text>
           <ConfirmedAmountField
+            key={`startOdometer:${weekKey}`}
             label="STARTING ODOMETER"
             amount={exp.startOdometer}
             money={false}
@@ -339,6 +344,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
             onDelete={() => commitOdometer('startOdometer', 0)}
           />
           <ConfirmedAmountField
+            key={`endOdometer:${weekKey}`}
             label="ENDING ODOMETER"
             amount={exp.endOdometer}
             money={false}
