@@ -247,3 +247,18 @@ describe('expenses insight with named other expenses', () => {
     expect(c.delta).toBeCloseTo(20);
   });
 });
+
+describe('daily other expense in insights', () => {
+  it('shows weekly-ized value with daily × 7 sub', () => {
+    const w = week({
+      expenses: makeExpenses({
+        otherExpenses: [{ id: 'a', label: 'Parking', amount: 10, frequency: 'daily' }],
+      }),
+    });
+    const i = buildInsight('expenses', w, null);
+    const row = i.rows.find((r) => r.label === 'Parking')!;
+    expect(row.value).toBe('$70.00');
+    expect(row.sub).toContain('daily × 7');
+    expect(i.headline).toBe('$70.00');
+  });
+});

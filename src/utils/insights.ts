@@ -98,8 +98,9 @@ function expenseRows(w: WeekData): InsightRow[] {
     .filter((i) => i.weekly > 0)
     .map((i) => {
       const pct = s.totalExpenses > 0 ? `${Math.round((i.weekly / s.totalExpenses) * 100)}% of expenses` : '';
-      const monthly = i.freq === 'monthly' ? 'monthly ÷ 4.33' : '';
-      const sub = [pct, monthly].filter(Boolean).join(' · ');
+      const freqNote =
+        i.freq === 'monthly' ? 'monthly ÷ 4.33' : i.freq === 'daily' ? 'daily × 7' : '';
+      const sub = [pct, freqNote].filter(Boolean).join(' · ');
       return { label: i.label, value: fmt(i.weekly), ...(sub ? { sub } : {}) };
     });
 }
