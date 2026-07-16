@@ -21,7 +21,10 @@ export type Insight = {
   footer: InsightRow[];
   change: InsightChange;
   unit: 'currency' | 'miles';
+  higherIsBad: boolean;
 };
+
+const COST_KINDS: InsightKind[] = ['expenses', 'diesel', 'def', 'deduction'];
 
 const TITLES: Record<InsightKind, string> = {
   net: 'Net Profit',
@@ -161,5 +164,6 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
   }
 
   const unit: 'currency' | 'miles' = kind === 'miles' ? 'miles' : 'currency';
-  return { title: TITLES[kind], headline, rows, footer, change, unit };
+  const higherIsBad = COST_KINDS.includes(kind);
+  return { title: TITLES[kind], headline, rows, footer, change, unit, higherIsBad };
 }

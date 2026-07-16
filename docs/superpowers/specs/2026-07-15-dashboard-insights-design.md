@@ -57,7 +57,7 @@ Rules:
 
 ### `src/components/InsightsSheet.tsx` (new)
 
-Module-scope component (per the component definition rule). Props: `{ insight: Insight | null; onClose: () => void }`. Renders RN `Modal` (`transparent`, `animationType="slide"`): dim backdrop (tap closes), dark card panel (`C.card`, rounded top corners, grab handle), title, headline number, rows list, footer ratios, vs-last-week chip (green up / red down via `C.success` / `C.danger`). ScrollView inside for long row lists, max height ~75% of screen.
+Module-scope component (per the component definition rule). Props: `{ insight: Insight | null; onClose: () => void }`. Renders RN `Modal` (`transparent`, `animationType="slide"`): dim backdrop (tap closes), dark card panel (`C.card`, rounded top corners, grab handle), title, headline number, rows list, footer ratios, vs-last-week chip (chip color is semantic: for cost kinds (expenses, diesel, def, deduction) an increase is red / decrease green; for net, earnings, miles the reverse — via `C.success` / `C.danger`). ScrollView inside for long row lists, max height ~75% of screen.
 
 ### `OwnerOpDashboard.tsx` (modified)
 

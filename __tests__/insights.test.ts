@@ -191,3 +191,20 @@ describe('net insight', () => {
     expect(i.footer.find((r) => r.label === 'Profit margin')!.value).toBe('68%');
   });
 });
+
+describe('higherIsBad flag', () => {
+  const w = week();
+
+  it('is true for cost kinds', () => {
+    expect(buildInsight('expenses', w, null).higherIsBad).toBe(true);
+    expect(buildInsight('diesel', w, null).higherIsBad).toBe(true);
+    expect(buildInsight('def', w, null).higherIsBad).toBe(true);
+    expect(buildInsight('deduction', w, null).higherIsBad).toBe(true);
+  });
+
+  it('is false for gain kinds', () => {
+    expect(buildInsight('net', w, null).higherIsBad).toBe(false);
+    expect(buildInsight('earnings', w, null).higherIsBad).toBe(false);
+    expect(buildInsight('miles', w, null).higherIsBad).toBe(false);
+  });
+});
