@@ -77,6 +77,10 @@ describe('expenses insight', () => {
     const i = buildInsight('expenses', noMiles, null);
     expect(i.footer.find((r) => r.label === 'Cost per mile')).toBeUndefined();
   });
+
+  it('expenses insight has unit "currency"', () => {
+    expect(insight.unit).toBe('currency');
+  });
 });
 
 describe('change vs last week', () => {
@@ -154,6 +158,10 @@ describe('miles + deduction insights', () => {
     expect(i.headline).toBe('1,500 mi');
     expect(i.rows.map((r) => r.label)).toEqual(['Start odometer', 'End odometer', 'Miles driven']);
     expect(i.rows[2].value).toBe('1,500 mi');
+  });
+
+  it('miles insight has unit "miles"', () => {
+    expect(buildInsight('miles', w, null).unit).toBe('miles');
   });
 
   it('deduction shows the formula', () => {

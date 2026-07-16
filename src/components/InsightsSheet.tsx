@@ -4,18 +4,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { C } from '../theme';
 import type { Insight, InsightChange } from '../utils/insights';
 
-function ChangeChip({ change }: { change: InsightChange }) {
+function ChangeChip({ change, unit }: { change: InsightChange; unit: 'currency' | 'miles' }) {
   if (change === null) {
     return <Text style={s.noData}>No data last week</Text>;
   }
   const up = change.delta >= 0;
   const color = up ? C.success : C.danger;
   const pctText = change.pct !== null ? ` (${Math.abs(change.pct).toFixed(0)}%)` : '';
+  const deltaText =
+    unit === 'miles'
+      ? `${Math.abs(change.delta).toLocaleString()} mi`
+      : `$${Math.abs(change.delta).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   return (
     <View style={[s.chip, { borderColor: color }]}>
       <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
       <Text style={[s.chipText, { color }]}>
-        {`$${Math.abs(change.delta).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${pctText} vs last week`}
+        {`${deltaText}${pctText} vs last week`}
       </Text>
     </View>
   );
@@ -33,7 +37,7 @@ export function InsightsSheet({ insight, onClose }: Props) {
           <>
             <Text style={s.title}>{insight.title}</Text>
             <Text style={s.headline}>{insight.headline}</Text>
-            <ChangeChip change={insight.change} />
+            <ChangeChip change={insight.change} unit={insight.unit} />
             <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
               {insight.rows.length === 0 && (
                 <Text style={s.empty}>Nothing recorded this week</Text>

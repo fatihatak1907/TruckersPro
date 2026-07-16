@@ -20,6 +20,7 @@ export type Insight = {
   rows: InsightRow[];
   footer: InsightRow[];
   change: InsightChange;
+  unit: 'currency' | 'miles';
 };
 
 const TITLES: Record<InsightKind, string> = {
@@ -159,5 +160,6 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
     }
   }
 
-  return { title: TITLES[kind], headline, rows, footer, change };
+  const unit: 'currency' | 'miles' = kind === 'miles' ? 'miles' : 'currency';
+  return { title: TITLES[kind], headline, rows, footer, change, unit };
 }
