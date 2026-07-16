@@ -1,6 +1,23 @@
 import { normalizeExpenses, calcOwnerOpSummary } from '../src/utils/calculations';
 import type { WeeklyExpenses } from '../src/types';
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+jest.mock('@react-native-community/netinfo', () => ({
+  addEventListener: jest.fn(() => () => {}),
+  fetch: jest.fn(() => Promise.resolve({ isConnected: false })),
+}));
+jest.mock('../src/supabase/client', () => ({
+  supabase: {
+    auth: { getUser: jest.fn(() => Promise.resolve({ data: { user: null } })) },
+    from: jest.fn(),
+  },
+}));
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getWeeklyExpenses } from '../src/storage/storage';
+
 function makeExpenses(over: Partial<WeeklyExpenses> = {}): WeeklyExpenses {
   return {
     weekKey: '2026-07-13',
@@ -56,5 +73,19 @@ describe('calcOwnerOpSummary with otherExpenses', () => {
 
   it('empty list adds nothing', () => {
     expect(calcOwnerOpSummary([], makeExpenses({ otherExpenses: [] })).totalExpenses).toBe(0);
+  });
+});
+
+describe('getWeeklyExpenses normalization', () => {
+  it('returns legacy rows with other converted to an entry', async () => {
+    await AsyncStorage.setItem(
+      'expenses:owner-op:2026-07-13',
+      JSON.stringify(makeExpenses({ other: 75, otherFrequency: 'monthly' }))
+    );
+    const e = (await getWeeklyExpenses('owner-op', '2026-07-13'))!;
+    expect(e.otherExpenses).toEqual([
+      { id: 'legacy-other', label: 'Other', amount: 75, frequency: 'monthly' },
+    ]);
+    expect(e.other).toBe(0);
   });
 });

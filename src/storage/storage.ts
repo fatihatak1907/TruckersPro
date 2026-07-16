@@ -3,6 +3,7 @@ import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../types';
 import { syncEngine } from '../sync/syncEngine';
 import { SYNC_QUEUE_KEY, SYNC_MIGRATED_KEY } from '../sync/types';
 import { supabase } from '../supabase/client';
+import { normalizeExpenses } from '../utils/calculations';
 
 function loadsKey(driverType: string, weekKey: string) {
   return `loads:${driverType}:${weekKey}`;
@@ -47,7 +48,7 @@ export async function saveWeeklyExpenses(driverType: string, expenses: WeeklyExp
 
 export async function getWeeklyExpenses(driverType: string, weekKey: string): Promise<WeeklyExpenses | null> {
   const raw = await AsyncStorage.getItem(expensesKey(driverType, weekKey));
-  return raw ? JSON.parse(raw) : null;
+  return raw ? normalizeExpenses(JSON.parse(raw)) : null;
 }
 
 export async function saveFuelEntry(driverType: string, entry: FuelEntry): Promise<void> {
@@ -185,6 +186,7 @@ export async function pullFromSupabase(userId: string): Promise<void> {
       adminFeeFrequency: row.admin_fee_frequency ?? 'weekly',
       other: Number(row.other),
       otherFrequency: row.other_frequency ?? 'weekly',
+      otherExpenses: row.other_expenses ?? [],
       startOdometer: Number(row.start_odometer),
       endOdometer: Number(row.end_odometer),
     };

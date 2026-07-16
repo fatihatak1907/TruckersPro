@@ -90,6 +90,7 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
         admin_fee_frequency: e.adminFeeFrequency,
         other: e.other,
         other_frequency: e.otherFrequency,
+        other_expenses: e.otherExpenses ?? [],
         start_odometer: e.startOdometer,
         end_odometer: e.endOdometer,
         updated_at: new Date().toISOString(),
