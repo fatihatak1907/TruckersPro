@@ -9,22 +9,23 @@ import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { CommissionSelector } from '../../components/CommissionSelector';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { ConfirmedAmountField } from '../../components/ConfirmedAmountField';
 import { saveLoad } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { C } from '../../theme';
-import type { LoadEntry } from '../../types';
+import type { LoadEntry, DriverType } from '../../types';
 
 type Props = { navigation: any; route: any };
 
 export function OwnerOpAddLoad({ navigation, route }: Props) {
-  const driverType: string = route.params?.driverType ?? route.params?.load?.driverType ?? 'owner-op';
+  const driverType = (route.params?.driverType ?? route.params?.load?.driverType ?? 'owner-op') as DriverType;
   const { weekKey } = useWeek();
   const editLoad: LoadEntry | undefined = route.params?.load;
 
   const [startLocation, setStartLocation] = useState('');
   const [endLocation, setEndLocation] = useState('');
-  const [earnings, setEarnings] = useState('');
-  const [tonu, setTonu] = useState('');
+  const [earnings, setEarnings] = useState(0);
+  const [tonu, setTonu] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number | null>(null);
 
   useFocusEffect(
@@ -32,30 +33,30 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
       if (editLoad) {
         setStartLocation(editLoad.startLocation);
         setEndLocation(editLoad.endLocation);
-        setEarnings(editLoad.earnings != null ? String(editLoad.earnings) : '');
-        setTonu(editLoad.tonu != null ? String(editLoad.tonu) : '');
+        setEarnings(editLoad.earnings ?? 0);
+        setTonu(editLoad.tonu ?? 0);
         setCommissionRate(editLoad.commissionRate ?? null);
       } else {
         setStartLocation('');
         setEndLocation('');
-        setEarnings('');
-        setTonu('');
+        setEarnings(0);
+        setTonu(0);
         setCommissionRate(null);
       }
     }, [editLoad?.id])
   );
 
-  const commissionAmount = commissionRate != null && earnings
-    ? (parseFloat(earnings) * commissionRate).toFixed(2)
+  const commissionAmount = commissionRate != null && earnings > 0
+    ? (earnings * commissionRate).toFixed(2)
     : null;
 
   async function handleSave() {
-    const hasTonu = parseFloat(tonu) > 0;
+    const hasTonu = tonu > 0;
     if (!startLocation || !endLocation) {
       Alert.alert('Missing fields', 'Please enter starting and end location.');
       return;
     }
-    if (!hasTonu && (!earnings || commissionRate === null)) {
+    if (!hasTonu && (earnings <= 0 || commissionRate === null)) {
       Alert.alert('Missing fields', 'Enter earnings and select a commission rate, or enter a TONU amount.');
       return;
     }
@@ -66,8 +67,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
       startLocation,
       endLocation,
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
-      earnings: parseFloat(earnings) || 0,
-      tonu: parseFloat(tonu) || 0,
+      earnings,
+      tonu,
       commissionRate: commissionRate ?? 0,
     };
     await saveLoad(load);
@@ -100,17 +101,20 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
           <Text style={s.fieldLabel}>END STATE / ADDRESS</Text>
           <TextInput style={s.input} value={endLocation} onChangeText={setEndLocation} placeholder="e.g. CA or Los Angeles, CA" placeholderTextColor={C.muted} />
 
-          <Text style={s.fieldLabel}>EARNINGS ($)</Text>
-          <View style={s.inputRow}>
-            <Text style={s.prefix}>$</Text>
-            <TextInput style={s.inputFlex} value={earnings} onChangeText={setEarnings} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={C.muted} />
-          </View>
-
-          <Text style={s.fieldLabel}>TONU ($)</Text>
-          <View style={s.inputRow}>
-            <Text style={s.prefix}>$</Text>
-            <TextInput style={s.inputFlex} value={tonu} onChangeText={setTonu} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={C.muted} />
-          </View>
+          <ConfirmedAmountField
+            key={`earnings:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="EARNINGS ($)"
+            amount={earnings}
+            onCommit={(v) => setEarnings(v)}
+            onDelete={() => setEarnings(0)}
+          />
+          <ConfirmedAmountField
+            key={`tonu:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="TONU ($)"
+            amount={tonu}
+            onCommit={(v) => setTonu(v)}
+            onDelete={() => setTonu(0)}
+          />
 
           <CommissionSelector
             label="COMMISSION FEE"
@@ -146,13 +150,6 @@ const s = StyleSheet.create({
     padding: 16, marginBottom: 12,
     fontSize: 16, color: C.text,
   },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: C.card, borderRadius: 16,
-    paddingHorizontal: 16, marginBottom: 12,
-  },
-  prefix: { fontSize: 16, color: C.sub },
-  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
   calcBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 20,
