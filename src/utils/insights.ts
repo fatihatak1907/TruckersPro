@@ -1,5 +1,5 @@
 import type { LoadEntry, WeeklyExpenses, FuelEntry, Frequency } from '../types';
-import { calcOwnerOpSummary } from './calculations';
+import { calcOwnerOpSummary, normalizeExpenses } from './calculations';
 import { fmt } from './format';
 
 export type InsightKind = 'net' | 'earnings' | 'expenses' | 'diesel' | 'def' | 'miles' | 'deduction';
@@ -53,10 +53,11 @@ function metric(kind: InsightKind, w: WeekData): number {
 }
 
 function hasData(w: WeekData): boolean {
-  const e = w.expenses;
+  const e = normalizeExpenses(w.expenses);
   const anyExpense =
     e.truckPayment + e.truckInsurance + e.trailerInsurance + e.trailerLease +
-    e.iftaCost + e.adminFee + (e.other ?? 0) > 0;
+    e.iftaCost + e.adminFee +
+    (e.otherExpenses ?? []).reduce((s, o) => s + o.amount, 0) > 0;
   const anyOdometer = e.endOdometer > e.startOdometer;
   return w.loads.length > 0 || w.fuelEntries.length > 0 || anyExpense || anyOdometer;
 }
@@ -75,7 +76,7 @@ const fuelDate = (f: FuelEntry) =>
 
 function expenseRows(w: WeekData): InsightRow[] {
   const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries);
-  const e = w.expenses;
+  const e = normalizeExpenses(w.expenses);
   const commission = w.loads.reduce((sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0), 0);
 
   const items: { label: string; weekly: number; freq: Frequency }[] = [
@@ -85,7 +86,9 @@ function expenseRows(w: WeekData): InsightRow[] {
     { label: 'Trailer lease', weekly: toWeekly(e.trailerLease, e.trailerLeaseFrequency), freq: e.trailerLeaseFrequency },
     { label: 'IFTA', weekly: toWeekly(e.iftaCost, e.iftaCostFrequency), freq: e.iftaCostFrequency },
     { label: 'Admin fee', weekly: toWeekly(e.adminFee, e.adminFeeFrequency), freq: e.adminFeeFrequency },
-    { label: 'Other', weekly: toWeekly(e.other ?? 0, e.otherFrequency), freq: e.otherFrequency },
+    ...(e.otherExpenses ?? []).map((o) => ({
+      label: o.label, weekly: toWeekly(o.amount, o.frequency), freq: o.frequency,
+    })),
     { label: 'Commission', weekly: commission, freq: 'weekly' },
     { label: 'Diesel', weekly: s.totalDiesel, freq: 'weekly' },
     { label: 'DEF', weekly: s.totalDef, freq: 'weekly' },

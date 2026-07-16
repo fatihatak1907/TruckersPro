@@ -208,3 +208,42 @@ describe('higherIsBad flag', () => {
     expect(buildInsight('miles', w, null).higherIsBad).toBe(false);
   });
 });
+
+describe('expenses insight with named other expenses', () => {
+  it('lists each entry by name with % sub', () => {
+    const w = week({
+      expenses: makeExpenses({
+        otherExpenses: [
+          { id: 'a', label: 'Truck wash', amount: 50, frequency: 'weekly' },
+          { id: 'b', label: 'Parts', amount: 433, frequency: 'monthly' },
+        ],
+      }),
+    });
+    const i = buildInsight('expenses', w, null);
+    const wash = i.rows.find((r) => r.label === 'Truck wash')!;
+    const parts = i.rows.find((r) => r.label === 'Parts')!;
+    expect(wash.value).toBe('$50.00');
+    expect(parts.value).toBe('$100.00');
+    expect(parts.sub).toContain('÷ 4.33');
+    expect(i.headline).toBe('$150.00');
+  });
+
+  it('legacy other appears as a single "Other" row', () => {
+    const w = week({ expenses: makeExpenses({ other: 60 }) });
+    const i = buildInsight('expenses', w, null);
+    expect(i.rows.find((r) => r.label === 'Other')!.value).toBe('$60.00');
+    expect(i.headline).toBe('$60.00');
+  });
+
+  it('hasData counts other expenses for change comparison', () => {
+    const prev = week({
+      expenses: makeExpenses({ otherExpenses: [{ id: 'a', label: 'Wash', amount: 40, frequency: 'weekly' }] }),
+    });
+    const cur = week({
+      expenses: makeExpenses({ otherExpenses: [{ id: 'b', label: 'Wash', amount: 60, frequency: 'weekly' }] }),
+    });
+    const c = buildInsight('expenses', cur, prev).change!;
+    expect(c).not.toBeNull();
+    expect(c.delta).toBeCloseTo(20);
+  });
+});
