@@ -34,7 +34,7 @@ One account, one driver type, zero clutter. Add your first load in under a minut
 Business
 
 ## Contact
-fatihatak1907@gmail.com
+admin@aigodpro.com
 
 ## Privacy policy URL
 https://fatihatak1907.github.io/TruckersPro/privacy.html
