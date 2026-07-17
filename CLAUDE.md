@@ -125,7 +125,7 @@ Never define React components (functions used as `<Component />`) inside another
 
 Live in `__tests__/`. Coverage: `calculations.ts`, `storage.ts`, `weekKey.ts`, `syncEngine.ts`, `migration.ts`. AsyncStorage is mocked via `@react-native-async-storage/async-storage/jest/async-storage-mock` (each test file calls `jest.mock(...)` inline — no global setup). Supabase + NetInfo are mocked per-file.
 
-**Pre-existing failures** in `calculations.test.ts` (3 tests) use stale `LoadEntry` field names (`diesel`, `def` as direct fields). They are documented and not fixed — update the test fixtures to use `FuelEntry` objects as the third arg to `calcOwnerOpSummary` if you change the types.
+The suite must be fully green — a failing test blocks merges and releases.
 
 ## Assets
 

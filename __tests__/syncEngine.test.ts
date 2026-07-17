@@ -45,7 +45,7 @@ test('enqueue persists op to AsyncStorage', async () => {
 });
 
 test('flush sends queued upsertLoad to supabase and removes it on success', async () => {
-  const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
+  const upsertMock = jest.fn((_row: any) => Promise.resolve({ error: null }));
   const fromMock = jest.fn(() => ({ upsert: upsertMock }));
   const { supabase } = require('../src/supabase/client');
   supabase.from.mockImplementation(fromMock);
@@ -76,7 +76,7 @@ test('flush sends queued upsertLoad to supabase and removes it on success', asyn
 });
 
 test('flush leaves op in queue and records error on failure', async () => {
-  const upsertMock = jest.fn(() => Promise.resolve({ error: { message: 'boom' } }));
+  const upsertMock = jest.fn((_row: any) => Promise.resolve({ error: { message: 'boom' } }));
   const { supabase } = require('../src/supabase/client');
   supabase.from.mockImplementation(() => ({ upsert: upsertMock }));
   supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
@@ -98,7 +98,7 @@ test('flush leaves op in queue and records error on failure', async () => {
 });
 
 test('upsertProfile sends UPDATE with name only', async () => {
-  const updateMock = jest.fn().mockReturnValue({ eq: jest.fn(() => Promise.resolve({ error: null })) });
+  const updateMock = jest.fn((_arg: any) => ({ eq: jest.fn(() => Promise.resolve({ error: null })) }));
   const fromMock = jest.fn(() => ({ update: updateMock }));
   const { supabase } = require('../src/supabase/client');
   supabase.from.mockImplementation(fromMock);

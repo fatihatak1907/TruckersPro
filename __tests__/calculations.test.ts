@@ -3,7 +3,7 @@ import {
   calcCompanyMileSummary,
   calcCompanyCommissionSummary,
 } from '../src/utils/calculations';
-import type { LoadEntry, WeeklyExpenses } from '../src/types';
+import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../src/types';
 
 const weekKey = '2026-05-25';
 
@@ -13,55 +13,65 @@ describe('calcOwnerOpSummary', () => {
       id: '1', weekKey, driverType: 'owner-op',
       startLocation: 'TX', endLocation: 'CA',
       createdAt: '2026-05-25',
-      earnings: 3000, commissionRate: 0.10, diesel: 400, def: 30,
+      earnings: 3000, commissionRate: 0.10,
     },
     {
       id: '2', weekKey, driverType: 'owner-op',
       startLocation: 'CA', endLocation: 'AZ',
       createdAt: '2026-05-26',
-      earnings: 1500, commissionRate: 0.12, diesel: 200, def: 15,
+      earnings: 1500, commissionRate: 0.12,
     },
+  ];
+  const fuel: FuelEntry[] = [
+    { id: 'f1', weekKey, type: 'diesel', cost: 400, createdAt: '2026-05-25T10:00:00Z' },
+    { id: 'f2', weekKey, type: 'def',    cost: 30,  createdAt: '2026-05-25T10:05:00Z' },
+    { id: 'f3', weekKey, type: 'diesel', cost: 200, createdAt: '2026-05-26T10:00:00Z' },
+    { id: 'f4', weekKey, type: 'def',    cost: 15,  createdAt: '2026-05-26T10:05:00Z' },
   ];
   const expenses: WeeklyExpenses = {
     weekKey,
     truckPayment: 600, truckPaymentFrequency: 'weekly',
-    truckInsurance: 250, trailerInsurance: 80,
-    trailerLease: 200, iftaCost: 50, adminFee: 40,
+    truckInsurance: 250, truckInsuranceFrequency: 'weekly',
+    trailerInsurance: 80, trailerInsuranceFrequency: 'weekly',
+    trailerLease: 200, trailerLeaseFrequency: 'weekly',
+    iftaCost: 50, iftaCostFrequency: 'weekly',
+    adminFee: 40, adminFeeFrequency: 'weekly',
+    other: 0, otherFrequency: 'weekly',
     startOdometer: 100000, endOdometer: 103500,
   };
 
   it('calculates totalEarnings', () => {
-    const result = calcOwnerOpSummary(loads, expenses);
+    const result = calcOwnerOpSummary(loads, expenses, fuel);
     expect(result.totalEarnings).toBe(4500); // 3000 + 1500
   });
 
-  it('calculates commissions per load', () => {
-    // Load 1: 3000 * 0.10 = 300, Load 2: 1500 * 0.12 = 180
-    const result = calcOwnerOpSummary(loads, expenses);
-    // totalExpenses = fixed(600+250+80+200+50+40) + perLoad(400+30+300 + 200+15+180)
-    // fixed = 1220, perLoad = 1125, total = 2345
+  it('calculates totalExpenses = fixed + commission + fuel', () => {
+    const result = calcOwnerOpSummary(loads, expenses, fuel);
+    // fixed = 600+250+80+200+50+40 = 1220
+    // commission = 3000*0.10 + 1500*0.12 = 480
+    // fuel = 400+30+200+15 = 645
     expect(result.totalExpenses).toBe(2345);
+    expect(result.totalDiesel).toBe(600);
+    expect(result.totalDef).toBe(45);
   });
 
   it('calculates mileage deduction', () => {
-    const result = calcOwnerOpSummary(loads, expenses);
+    const result = calcOwnerOpSummary(loads, expenses, fuel);
     expect(result.milesDriven).toBe(3500);
     expect(result.mileageDeduction).toBeCloseTo(490, 1); // 3500 * 0.14
   });
 
   it('calculates net profit', () => {
-    const result = calcOwnerOpSummary(loads, expenses);
+    const result = calcOwnerOpSummary(loads, expenses, fuel);
     // 4500 - 2345 - 490 = 1665
     expect(result.netProfit).toBeCloseTo(1665, 0);
   });
 
   it('handles monthly truck payment by dividing by 4.33', () => {
     const monthlyExpenses = { ...expenses, truckPaymentFrequency: 'monthly' as const };
-    const result = calcOwnerOpSummary(loads, monthlyExpenses);
-    const weeklyTruckPayment = 600 / 4.33;
-    const fixedExpenses = weeklyTruckPayment + 250 + 80 + 200 + 50 + 40;
-    const perLoadExpenses = 400 + 30 + 300 + 200 + 15 + 180;
-    expect(result.totalExpenses).toBeCloseTo(fixedExpenses + perLoadExpenses, 1);
+    const result = calcOwnerOpSummary(loads, monthlyExpenses, fuel);
+    const fixedExpenses = 600 / 4.33 + 250 + 80 + 200 + 50 + 40;
+    expect(result.totalExpenses).toBeCloseTo(fixedExpenses + 480 + 645, 1);
   });
 });
 

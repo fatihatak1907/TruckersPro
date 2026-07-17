@@ -26,8 +26,6 @@ const sampleLoad: LoadEntry = {
   createdAt: '2026-05-25T10:00:00Z',
   earnings: 2500,
   commissionRate: 0.10,
-  diesel: 350,
-  def: 25,
 };
 
 describe('saveLoad / getLoadsForWeek', () => {
@@ -57,8 +55,12 @@ describe('saveWeeklyExpenses / getWeeklyExpenses', () => {
   const expenses: WeeklyExpenses = {
     weekKey: '2026-05-25',
     truckPayment: 600, truckPaymentFrequency: 'weekly',
-    truckInsurance: 250, trailerInsurance: 80,
-    trailerLease: 200, iftaCost: 50, adminFee: 40,
+    truckInsurance: 250, truckInsuranceFrequency: 'weekly',
+    trailerInsurance: 80, trailerInsuranceFrequency: 'weekly',
+    trailerLease: 200, trailerLeaseFrequency: 'weekly',
+    iftaCost: 50, iftaCostFrequency: 'weekly',
+    adminFee: 40, adminFeeFrequency: 'weekly',
+    other: 0, otherFrequency: 'weekly',
     startOdometer: 100000, endOdometer: 103500,
   };
 
