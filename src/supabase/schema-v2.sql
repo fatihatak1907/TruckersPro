@@ -1,3 +1,9 @@
+-- ⚠️⚠️⚠️ DESTRUCTIVE — DO NOT RE-RUN ⚠️⚠️⚠️
+-- This migration was applied once (2026-07) and WIPES ALL USER DATA.
+-- It exists only as historical reference. Running it against production
+-- deletes every user and all their data. There is no undo.
+-- ⚠️⚠️⚠️ DESTRUCTIVE — DO NOT RE-RUN ⚠️⚠️⚠️
+
 -- v2: switch profiles to one-row-per-user, lock driver_type per account
 -- Wipe existing test data first (per spec: existing user goes through fresh signup)
 

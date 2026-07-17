@@ -14,8 +14,8 @@ TruckersPro is a no-nonsense weekly money tracker built for truck drivers:
 OWNER-OPERATORS & LEASE DRIVERS
 • Log every load — earnings, TONU, and commission per load
 • Track diesel and DEF fill-ups separately
-• Confirmed expense fields: truck payment, insurance, trailer, IFTA, admin fees — weekly, monthly, or daily
-• Add unlimited custom expenses by name (truck wash, parking, parts…)
+• Confirmed expense fields: truck payment, insurance, trailer, IFTA, admin fees — weekly or monthly
+• Add unlimited custom expenses by name — daily, weekly, or monthly (truck wash, parking, parts…)
 • Odometer-based mileage with automatic $0.14/mi deduction
 • A Net Profit dashboard that shows where every dollar went — tap any card for a full breakdown and week-over-week comparison
 
