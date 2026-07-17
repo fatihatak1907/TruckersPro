@@ -1,0 +1,9 @@
+# Not part of the app build — local tooling and docs
+.agents/
+.claude/
+campaign/
+skills-lock.json
+docs/
+store/
+.superpowers/
+__tests__/
