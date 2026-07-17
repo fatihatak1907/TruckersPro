@@ -29,6 +29,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "41d7f32f-6431-4fac-bb5c-520a5b95ca4e"
+      }
+    },
+    "owner": "truckerpro07"
   }
 }
