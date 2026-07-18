@@ -10,7 +10,7 @@ async function hasLocalData(): Promise<boolean> {
     k.startsWith('loads:') ||
     k.startsWith('expenses:') ||
     k.startsWith('fuel:') ||
-    k.startsWith('profile:')
+    k === 'profile:name'
   );
 }
 
@@ -45,7 +45,8 @@ async function enqueueAllLocal(): Promise<void> {
         kind: 'upsertExpenses',
         payload: { ...expenses, driverType },
       });
-    } else if (k.startsWith('profile:')) {
+    } else if (k === 'profile:name') {
+      // Only the name key: 'profile:driver_type' must never be uploaded as a name.
       const name = await AsyncStorage.getItem(k);
       if (name == null) continue;
       await syncEngine.enqueue({
