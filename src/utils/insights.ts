@@ -123,8 +123,8 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
       rows = expenseRows(thisWeek);
       if (s.totalEarnings > 0)
         footer.push({ label: '% of earnings', value: `${Math.round((s.totalExpenses / s.totalEarnings) * 100)}%` });
-      if (mi > 0)
-        footer.push({ label: 'Cost per mile', value: `${fmt(s.totalExpenses / mi)}/mi` });
+      if (s.milesDriven > 0)
+        footer.push({ label: 'Cost per mile', value: `${fmt(s.totalExpenses / s.milesDriven)}/mi` });
       break;
     }
     case 'earnings': {
@@ -133,8 +133,8 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
         value: fmt(l.earnings ?? 0),
         ...((l.tonu ?? 0) > 0 ? { sub: `+ ${fmt(l.tonu ?? 0)} TONU` } : {}),
       }));
-      if (mi > 0)
-        footer.push({ label: 'Earnings per mile', value: `${fmt(s.totalEarnings / mi)}/mi` });
+      if (s.milesDriven > 0)
+        footer.push({ label: 'Earnings per mile', value: `${fmt(s.totalEarnings / s.milesDriven)}/mi` });
       break;
     }
     case 'diesel':
@@ -142,8 +142,8 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
       const entries = thisWeek.fuelEntries.filter((f) => f.type === kind);
       rows = entries.map((f) => ({ label: fuelDate(f), value: fmt(f.cost) }));
       const total = kind === 'diesel' ? s.totalDiesel : s.totalDef;
-      if (mi > 0 && total > 0)
-        footer.push({ label: 'Cost per mile', value: `${fmt(total / mi)}/mi` });
+      if (s.milesDriven > 0 && total > 0)
+        footer.push({ label: 'Cost per mile', value: `${fmt(total / s.milesDriven)}/mi` });
       break;
     }
     case 'miles': {

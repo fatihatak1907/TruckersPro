@@ -49,6 +49,12 @@ export function SignupScreen({ navigation }: Props) {
       return;
     }
 
+    if (data.user.identities?.length === 0) {
+      setSubmitting(false);
+      setError('An account with this email already exists. Try signing in.');
+      return;
+    }
+
     if (!data.session) {
       // Email confirmation is on — no session yet. The profiles row is created
       // by App bootstrap from user_metadata after the first confirmed login.
