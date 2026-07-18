@@ -23,6 +23,9 @@ export function SignupScreen({ navigation }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState(false);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [resent, setResent] = useState(false);
 
   async function handleCreate() {
     setError(null);
@@ -79,22 +82,80 @@ export function SignupScreen({ navigation }: Props) {
     setSubmitting(false);
   }
 
+  async function handleVerifyCode() {
+    setError(null);
+    const token = code.trim();
+    if (token.length !== 6) { setError('Enter the 6-digit code from your email.'); return; }
+    setVerifying(true);
+    const { error: otpErr } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token,
+      type: 'signup',
+    });
+    setVerifying(false);
+    if (otpErr) {
+      setError(
+        otpErr.message?.toLowerCase().includes('expired')
+          ? 'That code expired. Tap "Resend code" and use the new one.'
+          : 'That code didn\'t match. Check the email and try again.'
+      );
+      return;
+    }
+    // Success: Supabase returns a session; App's SIGNED_IN listener takes over
+    // (creates the profile from metadata and loads the app).
+  }
+
+  async function handleResendCode() {
+    setError(null);
+    setResent(false);
+    const { error: resendErr } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+    });
+    if (resendErr) { setError(resendErr.message); return; }
+    setResent(true);
+  }
+
   if (pendingConfirm) {
     return (
       <View style={[s.root, { paddingTop: insets.top }]}>
         <StatusBar barStyle="light-content" />
-        <View style={s.confirmWrap}>
-          <Ionicons name="mail-unread-outline" size={64} color={C.accent} />
-          <Text style={s.appName}>Check your email</Text>
-          <Text style={s.confirmBody}>
-            We sent a confirmation link to {email.trim().toLowerCase()}. Tap the link, then come
-            back and log in. Didn't get it? Check your spam folder.
-          </Text>
-          <TouchableOpacity style={[s.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
-            <Text style={s.primaryBtnText}>Go to Log In</Text>
-            <Ionicons name="arrow-forward" size={20} color={C.accentText} />
-          </TouchableOpacity>
-        </View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={s.confirmWrap}>
+            <Ionicons name="mail-unread-outline" size={64} color={C.accent} />
+            <Text style={s.appName}>Check your email</Text>
+            <Text style={s.confirmBody}>
+              We sent a 6-digit code to {email.trim().toLowerCase()}. Enter it below to confirm
+              your account. Didn't get it? Check your spam folder.
+            </Text>
+            <TextInput
+              style={s.codeInput}
+              value={code}
+              onChangeText={(t) => { setCode(t.replace(/[^0-9]/g, '')); setError(null); }}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="000000"
+              placeholderTextColor={C.muted}
+              autoFocus
+            />
+            {error ? <Text style={s.error}>{error}</Text> : null}
+            {resent ? <Text style={s.resentNote}>New code sent — check your inbox.</Text> : null}
+            <TouchableOpacity
+              style={[s.primaryBtn, { alignSelf: 'stretch' }, (verifying || code.length !== 6) && { opacity: 0.6 }]}
+              onPress={handleVerifyCode}
+              disabled={verifying || code.length !== 6}
+              activeOpacity={0.85}
+            >
+              <Text style={s.primaryBtnText}>{verifying ? 'Verifying…' : 'Confirm'}</Text>
+              <Ionicons name="checkmark" size={20} color={C.accentText} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleResendCode} style={s.linkBtn}>
+              <Text style={s.linkText}>
+                Didn't get a code?  <Text style={s.linkAccent}>Resend code</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     );
   }
@@ -199,6 +260,12 @@ const s = StyleSheet.create({
   error: { color: C.danger, fontSize: 13, fontWeight: '600', marginTop: 4 },
   confirmWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   confirmBody: { fontSize: 14, color: C.sub, textAlign: 'center', lineHeight: 21 },
+  codeInput: {
+    alignSelf: 'stretch', backgroundColor: C.card, borderRadius: 16,
+    paddingVertical: 16, fontSize: 28, fontWeight: '800', color: C.text,
+    textAlign: 'center', letterSpacing: 12, marginTop: 8,
+  },
+  resentNote: { color: C.success, fontSize: 13, fontWeight: '600' },
   primaryBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
     backgroundColor: C.accent, borderRadius: 999, paddingVertical: 18, marginTop: 16,
