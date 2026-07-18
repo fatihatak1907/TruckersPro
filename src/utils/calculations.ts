@@ -5,6 +5,7 @@ const toWeekly = (amount: number, freq: OtherFrequency | undefined) =>
 
 export function normalizeExpenses(e: WeeklyExpenses): WeeklyExpenses {
   const otherExpenses = e.otherExpenses ?? [];
+  const mileageRate = e.mileageRate && e.mileageRate > 0 ? e.mileageRate : 0.14;
   if ((e.other ?? 0) > 0 && otherExpenses.length === 0) {
     return {
       ...e,
@@ -13,15 +14,17 @@ export function normalizeExpenses(e: WeeklyExpenses): WeeklyExpenses {
       otherExpenses: [
         { id: 'legacy-other', label: 'Other', amount: e.other ?? 0, frequency: e.otherFrequency ?? 'weekly' },
       ],
+      mileageRate,
     };
   }
-  return { ...e, otherExpenses };
+  return { ...e, otherExpenses, mileageRate };
 }
 
 export function calcOwnerOpSummary(
   loads: LoadEntry[],
   rawExpenses: WeeklyExpenses,
-  fuelEntries: FuelEntry[] = []
+  fuelEntries: FuelEntry[] = [],
+  opts?: { mileage?: boolean }
 ): OwnerOpWeeklySummary {
   const expenses = normalizeExpenses(rawExpenses);
   const weekKey = expenses.weekKey;
@@ -46,8 +49,9 @@ export function calcOwnerOpSummary(
   const fuelTotal = totalDiesel + totalDef;
 
   const totalExpenses = fixedExpenses + commissionExpenses + fuelTotal;
-  const milesDriven = expenses.endOdometer - expenses.startOdometer;
-  const mileageDeduction = milesDriven * 0.14;
+  const mileageOn = opts?.mileage !== false;
+  const milesDriven = mileageOn ? expenses.endOdometer - expenses.startOdometer : 0;
+  const mileageDeduction = milesDriven * (expenses.mileageRate ?? 0.14);
   const netProfit = totalEarnings - totalExpenses - mileageDeduction;
 
   return { weekKey, totalEarnings, totalExpenses, totalDiesel, totalDef, milesDriven, mileageDeduction, netProfit };
