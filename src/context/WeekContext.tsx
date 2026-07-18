@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { getCurrentWeekKey, addWeeks } from '../utils/weekKey';
+import { getCurrentWeekKey, addWeeks, clampWeek } from '../utils/weekKey';
 
 export function formatWeekDisplay(weekKey: string): string {
   const mon = new Date(weekKey + 'T00:00:00Z');
@@ -12,24 +12,31 @@ export function formatWeekDisplay(weekKey: string): string {
 
 type WeekContextType = {
   weekKey: string;
+  canGoPrev: boolean;
+  canGoNext: boolean;
   goToPrev: () => void;
   goToNext: () => void;
 };
 
 const WeekContext = createContext<WeekContextType>({
   weekKey: getCurrentWeekKey(),
+  canGoPrev: false,
+  canGoNext: true,
   goToPrev: () => {},
   goToNext: () => {},
 });
 
 export function WeekProvider({ children }: { children: React.ReactNode }) {
-  const [weekKey, setWeekKey] = useState(getCurrentWeekKey());
+  const [homeWeek] = useState(getCurrentWeekKey());
+  const [weekKey, setWeekKey] = useState(homeWeek);
   return (
     <WeekContext.Provider
       value={{
         weekKey,
-        goToPrev: () => setWeekKey((k) => addWeeks(k, -1)),
-        goToNext: () => setWeekKey((k) => addWeeks(k, 1)),
+        canGoPrev: weekKey > homeWeek,
+        canGoNext: weekKey < addWeeks(homeWeek, 1),
+        goToPrev: () => setWeekKey((k) => clampWeek(addWeeks(k, -1), homeWeek)),
+        goToNext: () => setWeekKey((k) => clampWeek(addWeeks(k, 1), homeWeek)),
       }}
     >
       {children}

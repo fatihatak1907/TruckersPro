@@ -34,7 +34,7 @@ type Props = { navigation: any; route: any };
 
 export function OwnerOpDashboard({ navigation, route }: Props) {
   const driverType: string = route.params?.driverType ?? 'owner-op';
-  const { weekKey, goToPrev, goToNext } = useWeek();
+  const { weekKey, goToPrev, goToNext, canGoPrev, canGoNext } = useWeek();
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [expenses, setExpenses] = useState<WeeklyExpenses>({ ...EMPTY_EXPENSES, weekKey });
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([]);
@@ -110,11 +110,11 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
         <View style={s.weekNavCard}>
-          <TouchableOpacity onPress={goToPrev} style={s.navBtn}>
+          <TouchableOpacity onPress={goToPrev} disabled={!canGoPrev} style={[s.navBtn, !canGoPrev && s.navBtnDisabled]}>
             <Ionicons name="chevron-back" size={20} color={C.sub} />
           </TouchableOpacity>
           <Text style={s.weekLabel}>{formatWeekDisplay(weekKey)}</Text>
-          <TouchableOpacity onPress={goToNext} style={s.navBtn}>
+          <TouchableOpacity onPress={goToNext} disabled={!canGoNext} style={[s.navBtn, !canGoNext && s.navBtnDisabled]}>
             <Ionicons name="chevron-forward" size={20} color={C.sub} />
           </TouchableOpacity>
         </View>
@@ -206,6 +206,7 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 16, padding: 12, marginBottom: 12,
   },
   navBtn: { padding: 4 },
+  navBtnDisabled: { opacity: 0.3 },
   weekLabel: { fontSize: 14, fontWeight: '700', color: C.text },
   netCard: {
     backgroundColor: C.card, borderRadius: 24, padding: 24,
