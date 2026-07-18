@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert,
+  StyleSheet, ScrollView, Alert, Keyboard,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,7 @@ export function OwnerOpFuel({ route }: { route: any }) {
   const totalDef = entries.filter((e) => e.type === 'def').reduce((s, e) => s + e.cost, 0);
 
   async function handleAdd() {
+    Keyboard.dismiss();
     const c = parseFloat(cost);
     if (!cost || isNaN(c) || c <= 0) {
       Alert.alert('Invalid', 'Enter a valid cost.');
