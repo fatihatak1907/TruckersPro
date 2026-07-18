@@ -9,6 +9,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { CommissionSelector } from '../../components/CommissionSelector';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { StatePicker } from '../../components/StatePicker';
+import { ConfirmedAmountField } from '../../components/ConfirmedAmountField';
+import { splitCityState, joinCityState } from '../../utils/usStates';
 import { saveLoad } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { C } from '../../theme';
@@ -20,44 +23,54 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
   const { weekKey } = useWeek();
   const editLoad: LoadEntry | undefined = route.params?.load;
 
-  const [startLocation, setStartLocation] = useState('');
-  const [endLocation, setEndLocation] = useState('');
-  const [earnings, setEarnings] = useState('');
+  const [startCity, setStartCity] = useState('');
+  const [startState, setStartState] = useState<string | null>(null);
+  const [endCity, setEndCity] = useState('');
+  const [endState, setEndState] = useState<string | null>(null);
+  const [earnings, setEarnings] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       if (editLoad) {
-        setStartLocation(editLoad.startLocation);
-        setEndLocation(editLoad.endLocation);
-        setEarnings(editLoad.earnings != null ? String(editLoad.earnings) : '');
+        const start = splitCityState(editLoad.startLocation);
+        const end = splitCityState(editLoad.endLocation);
+        setStartCity(start.city);
+        setStartState(start.state);
+        setEndCity(end.city);
+        setEndState(end.state);
+        setEarnings(editLoad.earnings ?? 0);
         setCommissionRate(editLoad.commissionRate ?? null);
       } else {
-        setStartLocation('');
-        setEndLocation('');
-        setEarnings('');
+        setStartCity(''); setStartState(null);
+        setEndCity(''); setEndState(null);
+        setEarnings(0);
         setCommissionRate(null);
       }
     }, [editLoad?.id])
   );
 
-  const driverCut = commissionRate != null && earnings
-    ? (parseFloat(earnings) * commissionRate).toFixed(2)
+  const driverCut = commissionRate != null && earnings > 0
+    ? (earnings * commissionRate).toFixed(2)
     : null;
 
   async function handleSave() {
-    if (!startLocation || !endLocation || !earnings || commissionRate === null) {
-      Alert.alert('Missing fields', 'Please fill in all fields and select a commission rate.');
+    if (!startCity.trim() || !startState || !endCity.trim() || !endState) {
+      Alert.alert('Missing fields', 'Please enter city and select a state for both start and end.');
+      return;
+    }
+    if (earnings <= 0 || commissionRate === null) {
+      Alert.alert('Missing fields', 'Enter and confirm earnings and select a commission rate.');
       return;
     }
     const load: LoadEntry = {
       id: editLoad?.id ?? uuidv4(),
       weekKey: editLoad?.weekKey ?? weekKey,
       driverType: 'company-commission',
-      startLocation,
-      endLocation,
+      startLocation: joinCityState(startCity, startState),
+      endLocation: joinCityState(endCity, endState),
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
-      earnings: parseFloat(earnings),
+      earnings,
       commissionRate,
     };
     await saveLoad(load);
@@ -84,17 +97,23 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <Text style={s.fieldLabel}>STARTING STATE / ADDRESS</Text>
-          <TextInput style={s.input} value={startLocation} onChangeText={setStartLocation} placeholder="e.g. TX or Dallas, TX" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>STARTING CITY</Text>
+          <TextInput style={s.input} value={startCity} onChangeText={setStartCity} placeholder="e.g. Dallas" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>STARTING STATE</Text>
+          <StatePicker label="Select state" value={startState} onSelect={setStartState} />
 
-          <Text style={s.fieldLabel}>END STATE / ADDRESS</Text>
-          <TextInput style={s.input} value={endLocation} onChangeText={setEndLocation} placeholder="e.g. FL or Miami, FL" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>ENDING CITY</Text>
+          <TextInput style={s.input} value={endCity} onChangeText={setEndCity} placeholder="e.g. Miami" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>ENDING STATE</Text>
+          <StatePicker label="Select state" value={endState} onSelect={setEndState} />
 
-          <Text style={s.fieldLabel}>EARNINGS ($)</Text>
-          <View style={s.inputRow}>
-            <Text style={s.prefix}>$</Text>
-            <TextInput style={s.inputFlex} value={earnings} onChangeText={setEarnings} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={C.muted} />
-          </View>
+          <ConfirmedAmountField
+            key={`earnings:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="EARNINGS ($)"
+            amount={earnings}
+            onCommit={(v) => setEarnings(v)}
+            onDelete={() => setEarnings(0)}
+          />
 
           <CommissionSelector
             label="COMMISSION RATE"
@@ -130,13 +149,6 @@ const s = StyleSheet.create({
     padding: 16, marginBottom: 12,
     fontSize: 16, color: C.text,
   },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: C.card, borderRadius: 16,
-    paddingHorizontal: 16, marginBottom: 12,
-  },
-  prefix: { fontSize: 16, color: C.sub },
-  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
   calcBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 20,
