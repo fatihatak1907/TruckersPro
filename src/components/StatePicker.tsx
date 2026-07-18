@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, Modal, FlatList, StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { US_STATES } from '../utils/usStates';
 import { C } from '../theme';
 
@@ -14,6 +15,7 @@ type Props = {
 
 export function StatePicker({ label, value, onSelect }: Props) {
   const [open, setOpen] = useState(false);
+  const insets = useSafeAreaInsets();
   const selected = US_STATES.find((st) => st.code === value);
 
   return (
@@ -27,7 +29,7 @@ export function StatePicker({ label, value, onSelect }: Props) {
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <View style={s.backdrop}>
-          <View style={s.sheet}>
+          <View style={[s.sheet, { paddingBottom: 24 + insets.bottom }]}>
             <View style={s.sheetHeader}>
               <Text style={s.sheetTitle}>Select state</Text>
               <TouchableOpacity onPress={() => setOpen(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>

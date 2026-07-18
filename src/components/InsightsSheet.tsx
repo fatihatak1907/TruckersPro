@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, ScrollView, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../theme';
 import type { Insight, InsightChange } from '../utils/insights';
 import { fmt } from '../utils/format';
@@ -38,10 +39,11 @@ function ChangeChip({
 type Props = { insight: Insight | null; onClose: () => void };
 
 export function InsightsSheet({ insight, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={insight !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={s.backdrop} onPress={onClose} />
-      <View style={s.sheet}>
+      <View style={[s.sheet, { paddingBottom: 32 + insets.bottom }]}>
         <View style={s.handle} />
         {insight && (
           <>
@@ -86,7 +88,7 @@ const s = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
     backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 20, paddingBottom: 32, maxHeight: '75%',
+    padding: 20, maxHeight: '75%',
   },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.muted, marginBottom: 14 },
   title: { fontSize: 12, fontWeight: '700', color: C.sub, letterSpacing: 1.5, textTransform: 'uppercase' },

@@ -13,7 +13,7 @@ export function WelcomeScreen({ navigation }: Props) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
       <ImageBackground
-        source={require('../../assets/welcome-bg.jpg')}
+        source={require('../../assets/login-bg.png')}
         style={s.bg}
         resizeMode="cover"
       >
@@ -25,12 +25,6 @@ export function WelcomeScreen({ navigation }: Props) {
 
         <View style={[s.content, { paddingBottom: insets.bottom + 24 }]}>
           <Text style={s.title}>Drive smart.{'\n'}Track every mile.</Text>
-
-          <View style={s.dots}>
-            <View style={[s.dot, s.dotActive]} />
-            <View style={s.dot} />
-            <View style={s.dot} />
-          </View>
 
           <View style={s.buttonRow}>
             <TouchableOpacity
@@ -59,9 +53,6 @@ const s = StyleSheet.create({
   bg: { flex: 1, justifyContent: 'flex-end' },
   content: { padding: 24, gap: 28 },
   title: { fontSize: 36, fontWeight: '800', color: '#fff', lineHeight: 42 },
-  dots: { flexDirection: 'row', gap: 6 },
-  dot: { width: 22, height: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.3)' },
-  dotActive: { backgroundColor: '#fff', width: 32 },
   buttonRow: { flexDirection: 'row', gap: 12 },
   button: {
     flex: 1,
