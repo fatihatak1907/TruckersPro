@@ -107,7 +107,7 @@ export function CompanyMileDashboard({ navigation }: Props) {
                   <Text style={s.loadRoute}>{load.startLocation} → {load.endLocation}</Text>
                 </View>
                 <Text style={s.loadDetail}>
-                  {load.paidMileage} mi × ${load.centsPerMile?.toFixed(2)}/mi = <Text style={s.loadDetailBold}>{fmt((load.paidMileage ?? 0) * (load.centsPerMile ?? 0))}</Text>
+                  {load.paidMileage} mi{(load.extraMileage ?? 0) > 0 ? ` + ${load.extraMileage} extra` : ''} × ${load.centsPerMile?.toFixed(2)}/mi = <Text style={s.loadDetailBold}>{fmt(((load.paidMileage ?? 0) + (load.extraMileage ?? 0)) * (load.centsPerMile ?? 0))}</Text>
                 </Text>
                 <View style={s.loadActions}>
                   <TouchableOpacity style={s.editBtn} onPress={() => handleEdit(load)}>

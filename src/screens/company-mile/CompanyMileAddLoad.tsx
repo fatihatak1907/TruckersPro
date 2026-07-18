@@ -28,6 +28,7 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
   const [endState, setEndState] = useState<string | null>(null);
   const [paidMileage, setPaidMileage] = useState(0);
   const [centsPerMile, setCentsPerMile] = useState(0);
+  const [extraMileage, setExtraMileage] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -40,18 +41,20 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
         setEndState(end.state);
         setPaidMileage(editLoad.paidMileage ?? 0);
         setCentsPerMile(editLoad.centsPerMile ?? 0);
+        setExtraMileage(editLoad.extraMileage ?? 0);
       } else {
         setStartCity(''); setStartState(null);
         setEndCity(''); setEndState(null);
         setPaidMileage(0);
         setCentsPerMile(0);
+        setExtraMileage(0);
       }
     }, [editLoad?.id])
   );
 
   const loadEarnings =
     paidMileage > 0 && centsPerMile > 0
-      ? (paidMileage * centsPerMile).toFixed(2)
+      ? ((paidMileage + extraMileage) * centsPerMile).toFixed(2)
       : null;
 
   async function handleSave() {
@@ -72,6 +75,7 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
       paidMileage,
       centsPerMile,
+      extraMileage,
     };
     await saveLoad(load);
     navigation.setParams({ load: undefined });
@@ -115,6 +119,15 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
             placeholder="e.g. 500"
             onCommit={(v) => setPaidMileage(v)}
             onDelete={() => setPaidMileage(0)}
+          />
+          <ConfirmedAmountField
+            key={`extraMileage:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="EXTRA MILEAGE"
+            amount={extraMileage}
+            money={false}
+            placeholder="e.g. 50"
+            onCommit={(v) => setExtraMileage(v)}
+            onDelete={() => setExtraMileage(0)}
           />
           <ConfirmedAmountField
             key={`centsPerMile:${editLoad?.id ?? 'new'}:${weekKey}`}

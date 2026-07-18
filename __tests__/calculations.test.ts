@@ -126,6 +126,21 @@ describe('calcCompanyCommissionSummary', () => {
   });
 });
 
+describe('company-mile extra mileage', () => {
+  test('extra mileage paid at the same rate', () => {
+    const s = calcCompanyMileSummary([
+      { id: '1', weekKey: '2026-07-13', driverType: 'company-mile', startLocation: 'A, TX', endLocation: 'B, TX', createdAt: '', paidMileage: 500, centsPerMile: 0.55, extraMileage: 50 },
+    ] as any);
+    expect(s.totalEarnings).toBeCloseTo(302.5);
+  });
+  test('absent extra mileage unchanged', () => {
+    const s = calcCompanyMileSummary([
+      { id: '1', weekKey: '2026-07-13', driverType: 'company-mile', startLocation: 'A, TX', endLocation: 'B, TX', createdAt: '', paidMileage: 500, centsPerMile: 0.55 },
+    ] as any);
+    expect(s.totalEarnings).toBeCloseTo(275);
+  });
+});
+
 describe('once frequency + mileage options', () => {
   const base = {
     weekKey: '2026-07-13',

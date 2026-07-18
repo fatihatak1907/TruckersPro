@@ -12,6 +12,7 @@ export type LoadEntry = {
   commissionRate?: number;
   paidMileage?: number;
   centsPerMile?: number;
+  extraMileage?: number;
 };
 
 export type FuelEntry = {
