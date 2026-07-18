@@ -15,3 +15,10 @@ export function addWeeks(weekKey: string, delta: number): string {
   d.setUTCDate(d.getUTCDate() + delta * 7);
   return d.toISOString().slice(0, 10);
 }
+
+export function clampWeek(candidate: string, homeWeek: string): string {
+  const max = addWeeks(homeWeek, 1);
+  if (candidate < homeWeek) return homeWeek;
+  if (candidate > max) return max;
+  return candidate;
+}

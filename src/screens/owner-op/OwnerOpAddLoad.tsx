@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { CommissionSelector } from '../../components/CommissionSelector';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ConfirmedAmountField } from '../../components/ConfirmedAmountField';
+import { StatePicker } from '../../components/StatePicker';
+import { splitCityState, joinCityState } from '../../utils/usStates';
 import { saveLoad } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { C } from '../../theme';
@@ -22,8 +24,10 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
   const { weekKey } = useWeek();
   const editLoad: LoadEntry | undefined = route.params?.load;
 
-  const [startLocation, setStartLocation] = useState('');
-  const [endLocation, setEndLocation] = useState('');
+  const [startCity, setStartCity] = useState('');
+  const [startState, setStartState] = useState<string | null>(null);
+  const [endCity, setEndCity] = useState('');
+  const [endState, setEndState] = useState<string | null>(null);
   const [earnings, setEarnings] = useState(0);
   const [tonu, setTonu] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number | null>(null);
@@ -31,14 +35,18 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
   useFocusEffect(
     useCallback(() => {
       if (editLoad) {
-        setStartLocation(editLoad.startLocation);
-        setEndLocation(editLoad.endLocation);
+        const start = splitCityState(editLoad.startLocation);
+        const end = splitCityState(editLoad.endLocation);
+        setStartCity(start.city);
+        setStartState(start.state);
+        setEndCity(end.city);
+        setEndState(end.state);
         setEarnings(editLoad.earnings ?? 0);
         setTonu(editLoad.tonu ?? 0);
         setCommissionRate(editLoad.commissionRate ?? null);
       } else {
-        setStartLocation('');
-        setEndLocation('');
+        setStartCity(''); setStartState(null);
+        setEndCity(''); setEndState(null);
         setEarnings(0);
         setTonu(0);
         setCommissionRate(null);
@@ -52,8 +60,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
 
   async function handleSave() {
     const hasTonu = tonu > 0;
-    if (!startLocation || !endLocation) {
-      Alert.alert('Missing fields', 'Please enter starting and end location.');
+    if (!startCity.trim() || !startState || !endCity.trim() || !endState) {
+      Alert.alert('Missing fields', 'Please enter city and select a state for both start and end.');
       return;
     }
     if (!hasTonu && (earnings <= 0 || commissionRate === null)) {
@@ -64,8 +72,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
       id: editLoad?.id ?? uuidv4(),
       weekKey: editLoad?.weekKey ?? weekKey,
       driverType,
-      startLocation,
-      endLocation,
+      startLocation: joinCityState(startCity, startState),
+      endLocation: joinCityState(endCity, endState),
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
       earnings,
       tonu,
@@ -95,11 +103,15 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <Text style={s.fieldLabel}>STARTING STATE / ADDRESS</Text>
-          <TextInput style={s.input} value={startLocation} onChangeText={setStartLocation} placeholder="e.g. TX or Dallas, TX" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>STARTING CITY</Text>
+          <TextInput style={s.input} value={startCity} onChangeText={setStartCity} placeholder="e.g. Dallas" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>STARTING STATE</Text>
+          <StatePicker label="Select state" value={startState} onSelect={setStartState} />
 
-          <Text style={s.fieldLabel}>END STATE / ADDRESS</Text>
-          <TextInput style={s.input} value={endLocation} onChangeText={setEndLocation} placeholder="e.g. CA or Los Angeles, CA" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>ENDING CITY</Text>
+          <TextInput style={s.input} value={endCity} onChangeText={setEndCity} placeholder="e.g. Los Angeles" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>ENDING STATE</Text>
+          <StatePicker label="Select state" value={endState} onSelect={setEndState} />
 
           <ConfirmedAmountField
             key={`earnings:${editLoad?.id ?? 'new'}:${weekKey}`}
@@ -107,13 +119,6 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
             amount={earnings}
             onCommit={(v) => setEarnings(v)}
             onDelete={() => setEarnings(0)}
-          />
-          <ConfirmedAmountField
-            key={`tonu:${editLoad?.id ?? 'new'}:${weekKey}`}
-            label="TONU ($)"
-            amount={tonu}
-            onCommit={(v) => setTonu(v)}
-            onDelete={() => setTonu(0)}
           />
 
           <CommissionSelector
@@ -129,6 +134,14 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
               <Text style={s.calcText}>Commission: ${commissionAmount}</Text>
             </View>
           )}
+
+          <ConfirmedAmountField
+            key={`tonu:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="TONU ($)"
+            amount={tonu}
+            onCommit={(v) => setTonu(v)}
+            onDelete={() => setTonu(0)}
+          />
 
           <TouchableOpacity onPress={handleSave} activeOpacity={0.85}>
             <View style={s.saveBtn}>

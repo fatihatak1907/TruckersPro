@@ -23,7 +23,7 @@ describe('getCurrentWeekKey', () => {
   });
 });
 
-import { addWeeks } from '../src/utils/weekKey';
+import { addWeeks, clampWeek } from '../src/utils/weekKey';
 
 describe('addWeeks', () => {
   it('goes back one week', () => {
@@ -31,5 +31,21 @@ describe('addWeeks', () => {
   });
   it('goes forward one week across a month boundary', () => {
     expect(addWeeks('2026-06-29', 1)).toBe('2026-07-06');
+  });
+});
+
+describe('clampWeek', () => {
+  const home = '2026-07-13';
+  test('below home clamps to home', () => {
+    expect(clampWeek('2026-07-06', home)).toBe(home);
+  });
+  test('home passes through', () => {
+    expect(clampWeek(home, home)).toBe(home);
+  });
+  test('home+1 passes through', () => {
+    expect(clampWeek('2026-07-20', home)).toBe('2026-07-20');
+  });
+  test('beyond home+1 clamps to home+1', () => {
+    expect(clampWeek('2026-07-27', home)).toBe('2026-07-20');
   });
 });

@@ -14,6 +14,7 @@ type Props = { navigation: any };
 
 export function SignupScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -21,9 +22,11 @@ export function SignupScreen({ navigation }: Props) {
   const [driverType, setDriverType] = useState<DriverTypeChoice | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState(false);
 
   async function handleCreate() {
     setError(null);
+    if (!name.trim()) { setError('Enter your name or company name.'); return; }
     const trimmed = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { setError('Enter a valid email address.'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
@@ -31,7 +34,11 @@ export function SignupScreen({ navigation }: Props) {
     if (!driverType) { setError('Please pick a driver type.'); return; }
 
     setSubmitting(true);
-    const { data, error: signErr } = await supabase.auth.signUp({ email: trimmed, password });
+    const { data, error: signErr } = await supabase.auth.signUp({
+      email: trimmed,
+      password,
+      options: { data: { driver_type: driverType, name: name.trim() } },
+    });
     if (signErr || !data.user) {
       setSubmitting(false);
       setError(
@@ -42,10 +49,25 @@ export function SignupScreen({ navigation }: Props) {
       return;
     }
 
+    if (data.user.identities?.length === 0) {
+      setSubmitting(false);
+      setError('An account with this email already exists. Try signing in.');
+      return;
+    }
+
+    if (!data.session) {
+      // Email confirmation is on — no session yet. The profiles row is created
+      // by App bootstrap from user_metadata after the first confirmed login.
+      setSubmitting(false);
+      setPendingConfirm(true);
+      return;
+    }
+
+    // Confirmation disabled — session exists, keep the immediate flow.
     const { error: profErr } = await supabase.from('profiles').insert({
       user_id: data.user.id,
       driver_type: driverType,
-      name: '',
+      name: name.trim(),
     });
     if (profErr) {
       setSubmitting(false);
@@ -55,6 +77,26 @@ export function SignupScreen({ navigation }: Props) {
 
     await saveDriverType(driverType);
     setSubmitting(false);
+  }
+
+  if (pendingConfirm) {
+    return (
+      <View style={[s.root, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="light-content" />
+        <View style={s.confirmWrap}>
+          <Ionicons name="mail-unread-outline" size={64} color={C.accent} />
+          <Text style={s.appName}>Check your email</Text>
+          <Text style={s.confirmBody}>
+            We sent a confirmation link to {email.trim().toLowerCase()}. Tap the link, then come
+            back and log in. Didn't get it? Check your spam folder.
+          </Text>
+          <TouchableOpacity style={[s.primaryBtn, { alignSelf: 'stretch' }]} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
+            <Text style={s.primaryBtnText}>Go to Log In</Text>
+            <Ionicons name="arrow-forward" size={20} color={C.accentText} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -76,6 +118,14 @@ export function SignupScreen({ navigation }: Props) {
           </View>
 
           <View style={s.form}>
+            <Text style={s.label}>YOUR NAME / COMPANY</Text>
+            <View style={s.inputWrap}>
+              <Ionicons name="person-outline" size={18} color={C.sub} />
+              <TextInput style={s.input} value={name} onChangeText={setName}
+                placeholder="e.g. Fatih Atak" placeholderTextColor={C.muted}
+                autoCapitalize="words" autoComplete="name" autoCorrect={false} />
+            </View>
+
             <Text style={s.label}>EMAIL</Text>
             <View style={s.inputWrap}>
               <Ionicons name="mail-outline" size={18} color={C.sub} />
@@ -147,6 +197,8 @@ const s = StyleSheet.create({
   },
   input: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
   error: { color: C.danger, fontSize: 13, fontWeight: '600', marginTop: 4 },
+  confirmWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
+  confirmBody: { fontSize: 14, color: C.sub, textAlign: 'center', lineHeight: 21 },
   primaryBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
     backgroundColor: C.accent, borderRadius: 999, paddingVertical: 18, marginTop: 16,

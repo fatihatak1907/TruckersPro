@@ -37,6 +37,7 @@ type WeekData = {
 
 export function OwnerOpHistory({ navigation, route }: Props) {
   const driverType: string = route?.params?.driverType ?? 'owner-op';
+  const mileageOn = driverType !== 'owner-op';
   const [weeks, setWeeks] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [weekData, setWeekData] = useState<Record<string, WeekData>>({});
@@ -56,7 +57,8 @@ export function OwnerOpHistory({ navigation, route }: Props) {
     const summary = calcOwnerOpSummary(
       loads,
       expenses ?? { ...EMPTY_EXPENSES, weekKey },
-      fuelEntries
+      fuelEntries,
+      { mileage: mileageOn }
     );
     setWeekData((prev) => ({ ...prev, [weekKey]: { summary, loads } }));
   }
@@ -157,11 +159,15 @@ export function OwnerOpHistory({ navigation, route }: Props) {
                     <Text style={s.summaryLabel}>Expenses</Text>
                     <Text style={s.summaryValue}>{fmt(weekData[wk].summary.totalExpenses)}</Text>
                   </View>
-                  <View style={s.summaryDivider} />
-                  <View style={s.summaryItem}>
-                    <Text style={s.summaryLabel}>Miles</Text>
-                    <Text style={s.summaryValue}>{weekData[wk].summary.milesDriven.toLocaleString()}</Text>
-                  </View>
+                  {mileageOn && (
+                    <>
+                      <View style={s.summaryDivider} />
+                      <View style={s.summaryItem}>
+                        <Text style={s.summaryLabel}>Miles</Text>
+                        <Text style={s.summaryValue}>{weekData[wk].summary.milesDriven.toLocaleString()}</Text>
+                      </View>
+                    </>
+                  )}
                 </View>
 
                 {/* Net Profit */}

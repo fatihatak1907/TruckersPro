@@ -39,8 +39,10 @@ const TITLES: Record<InsightKind, string> = {
 const toWeekly = (amount: number, freq: Frequency | OtherFrequency | undefined) =>
   freq === 'monthly' ? amount / 4.33 : freq === 'daily' ? amount * 7 : amount;
 
-function metric(kind: InsightKind, w: WeekData): number {
-  const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries);
+type CalcOpts = { mileage?: boolean };
+
+function metric(kind: InsightKind, w: WeekData, opts?: CalcOpts): number {
+  const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries, opts);
   switch (kind) {
     case 'net': return s.netProfit;
     case 'earnings': return s.totalEarnings;
@@ -62,10 +64,10 @@ function hasData(w: WeekData): boolean {
   return w.loads.length > 0 || w.fuelEntries.length > 0 || anyExpense || anyOdometer;
 }
 
-function computeChange(kind: InsightKind, thisWeek: WeekData, lastWeek: WeekData | null): InsightChange {
+function computeChange(kind: InsightKind, thisWeek: WeekData, lastWeek: WeekData | null, opts?: CalcOpts): InsightChange {
   if (!lastWeek || !hasData(lastWeek)) return null;
-  const cur = metric(kind, thisWeek);
-  const prev = metric(kind, lastWeek);
+  const cur = metric(kind, thisWeek, opts);
+  const prev = metric(kind, lastWeek, opts);
   return { delta: cur - prev, pct: prev !== 0 ? ((cur - prev) / Math.abs(prev)) * 100 : null };
 }
 
@@ -99,17 +101,20 @@ function expenseRows(w: WeekData): InsightRow[] {
     .map((i) => {
       const pct = s.totalExpenses > 0 ? `${Math.round((i.weekly / s.totalExpenses) * 100)}% of expenses` : '';
       const freqNote =
-        i.freq === 'monthly' ? 'monthly ÷ 4.33' : i.freq === 'daily' ? 'daily × 7' : '';
+        i.freq === 'monthly' ? 'monthly ÷ 4.33'
+        : i.freq === 'daily' ? 'daily × 7'
+        : i.freq === 'once' ? 'one-time'
+        : '';
       const sub = [pct, freqNote].filter(Boolean).join(' · ');
       return { label: i.label, value: fmt(i.weekly), ...(sub ? { sub } : {}) };
     });
 }
 
-export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: WeekData | null): Insight {
-  const s = calcOwnerOpSummary(thisWeek.loads, thisWeek.expenses, thisWeek.fuelEntries);
+export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: WeekData | null, opts?: CalcOpts): Insight {
+  const s = calcOwnerOpSummary(thisWeek.loads, thisWeek.expenses, thisWeek.fuelEntries, opts);
   const mi = miles(thisWeek);
-  const change = computeChange(kind, thisWeek, lastWeek);
-  let headline = fmt(metric(kind, thisWeek));
+  const change = computeChange(kind, thisWeek, lastWeek, opts);
+  let headline = fmt(metric(kind, thisWeek, opts));
   let rows: InsightRow[] = [];
   const footer: InsightRow[] = [];
 
@@ -118,8 +123,8 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
       rows = expenseRows(thisWeek);
       if (s.totalEarnings > 0)
         footer.push({ label: '% of earnings', value: `${Math.round((s.totalExpenses / s.totalEarnings) * 100)}%` });
-      if (mi > 0)
-        footer.push({ label: 'Cost per mile', value: `${fmt(s.totalExpenses / mi)}/mi` });
+      if (s.milesDriven > 0)
+        footer.push({ label: 'Cost per mile', value: `${fmt(s.totalExpenses / s.milesDriven)}/mi` });
       break;
     }
     case 'earnings': {
@@ -128,8 +133,8 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
         value: fmt(l.earnings ?? 0),
         ...((l.tonu ?? 0) > 0 ? { sub: `+ ${fmt(l.tonu ?? 0)} TONU` } : {}),
       }));
-      if (mi > 0)
-        footer.push({ label: 'Earnings per mile', value: `${fmt(s.totalEarnings / mi)}/mi` });
+      if (s.milesDriven > 0)
+        footer.push({ label: 'Earnings per mile', value: `${fmt(s.totalEarnings / s.milesDriven)}/mi` });
       break;
     }
     case 'diesel':
@@ -137,8 +142,8 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
       const entries = thisWeek.fuelEntries.filter((f) => f.type === kind);
       rows = entries.map((f) => ({ label: fuelDate(f), value: fmt(f.cost) }));
       const total = kind === 'diesel' ? s.totalDiesel : s.totalDef;
-      if (mi > 0 && total > 0)
-        footer.push({ label: 'Cost per mile', value: `${fmt(total / mi)}/mi` });
+      if (s.milesDriven > 0 && total > 0)
+        footer.push({ label: 'Cost per mile', value: `${fmt(total / s.milesDriven)}/mi` });
       break;
     }
     case 'miles': {
@@ -151,14 +156,17 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
       break;
     }
     case 'deduction': {
-      rows = [{ label: `${mi.toLocaleString()} mi × $0.14`, value: fmt(s.mileageDeduction) }];
+      const rate = normalizeExpenses(thisWeek.expenses).mileageRate ?? 0.14;
+      rows = [{ label: `${s.milesDriven.toLocaleString()} mi × $${rate.toFixed(2)}`, value: fmt(s.mileageDeduction) }];
       break;
     }
     case 'net': {
       rows = [
         { label: 'Earnings', value: fmt(s.totalEarnings) },
         { label: 'Expenses', value: `− ${fmt(s.totalExpenses)}` },
-        { label: 'Mileage deduction', value: `− ${fmt(s.mileageDeduction)}` },
+        ...(opts?.mileage === false
+          ? []
+          : [{ label: 'Mileage deduction', value: `− ${fmt(s.mileageDeduction)}` }]),
         { label: 'Net profit', value: fmt(s.netProfit) },
       ];
       if (s.totalEarnings > 0)

@@ -26,6 +26,7 @@ const EMPTY: WeeklyExpenses = {
   other: 0, otherFrequency: 'weekly',
   otherExpenses: [],
   startOdometer: 0, endOdometer: 0,
+  mileageRate: 0.14,
 };
 
 type AmountKey = 'truckPayment' | 'truckInsurance' | 'trailerInsurance' | 'trailerLease' | 'iftaCost' | 'adminFee';
@@ -87,8 +88,8 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
         <FreqToggle
           value={freq}
           onChange={setFreq}
-          options={['daily', 'weekly', 'monthly'] as const}
-          labels={{ daily: 'D', weekly: 'W', monthly: 'M' }}
+          options={['once', 'daily', 'weekly', 'monthly'] as const}
+          labels={{ once: '1x', daily: 'D', weekly: 'W', monthly: 'M' }}
         />
         <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
           <Ionicons name="close" size={18} color={C.sub} />
@@ -107,6 +108,7 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
 
 export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
   const driverType: string = route?.params?.driverType ?? 'owner-op';
+  const isOwnerOp = driverType === 'owner-op';
   const { weekKey } = useWeek();
   const [exp, setExp] = useState<WeeklyExpenses>({ ...EMPTY, weekKey });
   const [addingOther, setAddingOther] = useState(false);
@@ -135,6 +137,10 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
     persist({ ...exp, [key]: value });
   }
 
+  function commitMileageRate(v: number) {
+    persist({ ...exp, mileageRate: v > 0 ? v : 0.14 });
+  }
+
   function commitOther(entry: OtherExpense) {
     const list = exp.otherExpenses ?? [];
     const updated = list.some((o) => o.id === entry.id)
@@ -150,7 +156,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
   }
 
   const milesDriven = exp.endOdometer > exp.startOdometer ? exp.endOdometer - exp.startOdometer : 0;
-  const mileageDeduction = milesDriven * 0.14;
+  const mileageDeduction = milesDriven * (exp.mileageRate ?? 0.14);
 
   return (
     <View style={s.root}>
@@ -190,7 +196,9 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
                 <Text style={s.otherLabel} numberOfLines={1}>{o.label}</Text>
                 <Text style={s.lockedValue}>{fmt(o.amount)}</Text>
                 <View style={s.freqBadge}>
-                  <Text style={s.freqBadgeText}>{o.frequency === 'monthly' ? 'M' : o.frequency === 'daily' ? 'D' : 'W'}</Text>
+                  <Text style={s.freqBadgeText}>
+                    {o.frequency === 'monthly' ? 'M' : o.frequency === 'daily' ? 'D' : o.frequency === 'once' ? '1x' : 'W'}
+                  </Text>
                 </View>
                 <View style={s.lockedActions}>
                   <TouchableOpacity style={s.iconBtn} onPress={() => { setEditingOtherId(o.id); setAddingOther(false); }}>
@@ -224,34 +232,45 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
             </TouchableOpacity>
           )}
 
-          <Text style={[s.sectionTitle, { marginTop: 16 }]}>MILEAGE (ODOMETER)</Text>
-          <ConfirmedAmountField
-            key={`startOdometer:${weekKey}`}
-            label="STARTING ODOMETER"
-            amount={exp.startOdometer}
-            money={false}
-            placeholder="e.g. 100000"
-            onCommit={(v) => commitOdometer('startOdometer', v)}
-            onDelete={() => commitOdometer('startOdometer', 0)}
-          />
-          <ConfirmedAmountField
-            key={`endOdometer:${weekKey}`}
-            label="ENDING ODOMETER"
-            amount={exp.endOdometer}
-            money={false}
-            placeholder="e.g. 103500"
-            onCommit={(v) => commitOdometer('endOdometer', v)}
-            onDelete={() => commitOdometer('endOdometer', 0)}
-          />
-
-          {milesDriven > 0 && (
-            <View style={s.calcBox}>
-              <Ionicons name="speedometer-outline" size={16} color={C.accent} />
-              <View>
-                <Text style={s.calcText}>Miles driven: {milesDriven.toLocaleString()} mi</Text>
-                <Text style={s.calcText}>Mileage deduction: ${mileageDeduction.toFixed(2)}</Text>
-              </View>
-            </View>
+          {!isOwnerOp && (
+            <>
+              <Text style={[s.sectionTitle, { marginTop: 16 }]}>MILEAGE (ODOMETER)</Text>
+              <ConfirmedAmountField
+                key={`startOdometer:${weekKey}`}
+                label="STARTING ODOMETER"
+                amount={exp.startOdometer}
+                money={false}
+                placeholder="e.g. 100000"
+                onCommit={(v) => commitOdometer('startOdometer', v)}
+                onDelete={() => commitOdometer('startOdometer', 0)}
+              />
+              <ConfirmedAmountField
+                key={`endOdometer:${weekKey}`}
+                label="ENDING ODOMETER"
+                amount={exp.endOdometer}
+                money={false}
+                placeholder="e.g. 103500"
+                onCommit={(v) => commitOdometer('endOdometer', v)}
+                onDelete={() => commitOdometer('endOdometer', 0)}
+              />
+              <ConfirmedAmountField
+                key={`mileageRate:${weekKey}`}
+                label="MILEAGE RATE ($/MI)"
+                amount={exp.mileageRate ?? 0.14}
+                placeholder="0.14"
+                onCommit={(v) => commitMileageRate(v)}
+                onDelete={() => commitMileageRate(0.14)}
+              />
+              {milesDriven > 0 && (
+                <View style={s.calcBox}>
+                  <Ionicons name="speedometer-outline" size={16} color={C.accent} />
+                  <View>
+                    <Text style={s.calcText}>Miles driven: {milesDriven.toLocaleString()} mi</Text>
+                    <Text style={s.calcText}>Mileage deduction: ${mileageDeduction.toFixed(2)}</Text>
+                  </View>
+                </View>
+              )}
+            </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>

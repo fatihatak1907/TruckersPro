@@ -189,6 +189,7 @@ export async function pullFromSupabase(userId: string): Promise<void> {
       otherExpenses: row.other_expenses ?? [],
       startOdometer: Number(row.start_odometer),
       endOdometer: Number(row.end_odometer),
+      mileageRate: row.mileage_rate != null ? Number(row.mileage_rate) : 0.14,
     };
     await AsyncStorage.setItem(
       `expenses:${row.driver_type}:${row.week_key}`,

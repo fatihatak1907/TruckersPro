@@ -34,7 +34,7 @@ type Props = { navigation: any; route: any };
 
 export function OwnerOpDashboard({ navigation, route }: Props) {
   const driverType: string = route.params?.driverType ?? 'owner-op';
-  const { weekKey, goToPrev, goToNext } = useWeek();
+  const { weekKey, goToPrev, goToNext, canGoPrev, canGoNext } = useWeek();
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [expenses, setExpenses] = useState<WeeklyExpenses>({ ...EMPTY_EXPENSES, weekKey });
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([]);
@@ -67,7 +67,8 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
     }, [weekKey])
   );
 
-  const summary = calcOwnerOpSummary(loads, expenses, fuelEntries);
+  const mileageOn = driverType !== 'owner-op';
+  const summary = calcOwnerOpSummary(loads, expenses, fuelEntries, { mileage: mileageOn });
   const title = driverType === 'lease' ? 'Lease Driver' : 'Owner Operator';
 
   function handleEditName() {
@@ -110,11 +111,11 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
         <View style={s.weekNavCard}>
-          <TouchableOpacity onPress={goToPrev} style={s.navBtn}>
+          <TouchableOpacity onPress={goToPrev} disabled={!canGoPrev} style={[s.navBtn, !canGoPrev && s.navBtnDisabled]}>
             <Ionicons name="chevron-back" size={20} color={C.sub} />
           </TouchableOpacity>
           <Text style={s.weekLabel}>{formatWeekDisplay(weekKey)}</Text>
-          <TouchableOpacity onPress={goToNext} style={s.navBtn}>
+          <TouchableOpacity onPress={goToNext} disabled={!canGoNext} style={[s.navBtn, !canGoNext && s.navBtnDisabled]}>
             <Ionicons name="chevron-forward" size={20} color={C.sub} />
           </TouchableOpacity>
         </View>
@@ -133,8 +134,12 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
             { label: 'Expenses', value: fmt(summary.totalExpenses), icon: 'trending-down', kind: 'expenses' },
             { label: 'Diesel', value: fmt(summary.totalDiesel), icon: 'water', kind: 'diesel' },
             { label: 'DEF', value: fmt(summary.totalDef), icon: 'water-outline', kind: 'def' },
-            { label: 'Miles', value: `${summary.milesDriven.toLocaleString()} mi`, icon: 'speedometer-outline', kind: 'miles' },
-            { label: 'Mi. Deduct', value: fmt(summary.mileageDeduction), icon: 'remove-circle-outline', kind: 'deduction' },
+            ...(mileageOn
+              ? [
+                  { label: 'Miles', value: `${summary.milesDriven.toLocaleString()} mi`, icon: 'speedometer-outline', kind: 'miles' },
+                  { label: 'Mi. Deduct', value: fmt(summary.mileageDeduction), icon: 'remove-circle-outline', kind: 'deduction' },
+                ]
+              : []),
           ] as { label: string; value: string; icon: string; kind: InsightKind }[]).map((item) => (
             <TouchableOpacity key={item.label} style={s.statCard} onPress={() => setOpenInsight(item.kind)} activeOpacity={0.8}>
               <Ionicons name={item.icon as any} size={18} color={C.accent} style={s.statIcon} />
@@ -189,7 +194,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
       <InsightsSheet
         insight={
           openInsight
-            ? buildInsight(openInsight, { loads, expenses, fuelEntries }, prevWeek)
+            ? buildInsight(openInsight, { loads, expenses, fuelEntries }, prevWeek, { mileage: mileageOn })
             : null
         }
         onClose={() => setOpenInsight(null)}
@@ -206,6 +211,7 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 16, padding: 12, marginBottom: 12,
   },
   navBtn: { padding: 4 },
+  navBtnDisabled: { opacity: 0.3 },
   weekLabel: { fontSize: 14, fontWeight: '700', color: C.text },
   netCard: {
     backgroundColor: C.card, borderRadius: 24, padding: 24,

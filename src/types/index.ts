@@ -24,7 +24,7 @@ export type FuelEntry = {
 
 export type Frequency = 'weekly' | 'monthly';
 
-export type OtherFrequency = 'daily' | 'weekly' | 'monthly';
+export type OtherFrequency = 'once' | 'daily' | 'weekly' | 'monthly';
 
 export type OtherExpense = {
   id: string;
@@ -52,6 +52,7 @@ export type WeeklyExpenses = {
   otherExpenses?: OtherExpense[];
   startOdometer: number;
   endOdometer: number;
+  mileageRate?: number; // $/mi deduction rate; default 0.14 (lease drivers can customize)
 };
 
 export type OwnerOpWeeklySummary = {

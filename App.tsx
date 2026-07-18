@@ -19,6 +19,19 @@ import { C } from './src/theme';
 
 type AuthState = 'loading' | 'signed-out' | 'needs-profile' | 'migrating' | 'ready' | 'error';
 
+async function createProfileFromMetadata(uid: string): Promise<{ driver_type: string; name: string } | null> {
+  const { data } = await supabase.auth.getUser();
+  const meta = data.user?.user_metadata as { driver_type?: string; name?: string } | undefined;
+  if (!meta?.driver_type) return null;
+  const { error } = await supabase.from('profiles').insert({
+    user_id: uid,
+    driver_type: meta.driver_type,
+    name: meta.name ?? '',
+  });
+  if (error) return null;
+  return { driver_type: meta.driver_type, name: meta.name ?? '' };
+}
+
 export default function App() {
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +58,10 @@ export default function App() {
   async function bootstrap(uid: string) {
     try {
       setUserId(uid);
-      const profile = await fetchProfileWithRetry(uid);
+      let profile = await fetchProfileWithRetry(uid);
+      if (!profile) {
+        profile = await createProfileFromMetadata(uid);
+      }
       if (!profile) {
         setAuthState('needs-profile');
         return;

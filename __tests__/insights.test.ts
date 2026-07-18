@@ -248,6 +248,55 @@ describe('expenses insight with named other expenses', () => {
   });
 });
 
+describe('prelaunch batch insights', () => {
+  const base = {
+    weekKey: '2026-07-13',
+    truckPayment: 0, truckPaymentFrequency: 'weekly' as const,
+    truckInsurance: 0, truckInsuranceFrequency: 'weekly' as const,
+    trailerInsurance: 0, trailerInsuranceFrequency: 'weekly' as const,
+    trailerLease: 0, trailerLeaseFrequency: 'weekly' as const,
+    iftaCost: 0, iftaCostFrequency: 'weekly' as const,
+    adminFee: 0, adminFeeFrequency: 'weekly' as const,
+    other: 0, otherFrequency: 'weekly' as const,
+    otherExpenses: [],
+    startOdometer: 0, endOdometer: 0,
+  };
+
+  test('once expense shows one-time sub-label', () => {
+    const i = buildInsight('expenses', {
+      loads: [], fuelEntries: [],
+      expenses: { ...base, otherExpenses: [{ id: 'x', label: 'Repair', amount: 300, frequency: 'once' as const }] },
+    }, null);
+    const row = i.rows.find((r) => r.label === 'Repair');
+    expect(row?.sub).toContain('one-time');
+  });
+
+  test('deduction row shows custom rate', () => {
+    const i = buildInsight('deduction', {
+      loads: [], fuelEntries: [],
+      expenses: { ...base, startOdometer: 0, endOdometer: 100, mileageRate: 0.2 },
+    }, null);
+    expect(i.rows[0].label).toBe('100 mi × $0.20');
+    expect(i.headline).toBe('$20.00');
+  });
+
+  test('net waterfall omits deduction row when mileage off', () => {
+    const i = buildInsight('net', {
+      loads: [], fuelEntries: [],
+      expenses: { ...base, startOdometer: 0, endOdometer: 100 },
+    }, null, { mileage: false });
+    expect(i.rows.some((r) => r.label === 'Mileage deduction')).toBe(false);
+  });
+
+  test('net waterfall keeps deduction row when mileage on', () => {
+    const i = buildInsight('net', {
+      loads: [], fuelEntries: [],
+      expenses: { ...base, startOdometer: 0, endOdometer: 100 },
+    }, null);
+    expect(i.rows.some((r) => r.label === 'Mileage deduction')).toBe(true);
+  });
+});
+
 describe('daily other expense in insights', () => {
   it('shows weekly-ized value with daily × 7 sub', () => {
     const w = week({

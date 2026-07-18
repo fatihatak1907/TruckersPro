@@ -2,6 +2,7 @@ import {
   calcOwnerOpSummary,
   calcCompanyMileSummary,
   calcCompanyCommissionSummary,
+  normalizeExpenses,
 } from '../src/utils/calculations';
 import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../src/types';
 
@@ -122,5 +123,50 @@ describe('calcCompanyCommissionSummary', () => {
   it('sets netProfit equal to totalEarnings', () => {
     const result = calcCompanyCommissionSummary(loads);
     expect(result.netProfit).toBe(result.totalEarnings);
+  });
+});
+
+describe('once frequency + mileage options', () => {
+  const base = {
+    weekKey: '2026-07-13',
+    truckPayment: 0, truckPaymentFrequency: 'weekly' as const,
+    truckInsurance: 0, truckInsuranceFrequency: 'weekly' as const,
+    trailerInsurance: 0, trailerInsuranceFrequency: 'weekly' as const,
+    trailerLease: 0, trailerLeaseFrequency: 'weekly' as const,
+    iftaCost: 0, iftaCostFrequency: 'weekly' as const,
+    adminFee: 0, adminFeeFrequency: 'weekly' as const,
+    other: 0, otherFrequency: 'weekly' as const,
+    otherExpenses: [],
+    startOdometer: 0, endOdometer: 0,
+  };
+
+  test('once expense counts fully in its week', () => {
+    const s = calcOwnerOpSummary([], {
+      ...base,
+      otherExpenses: [{ id: 'x', label: 'Repair', amount: 300, frequency: 'once' as const }],
+    });
+    expect(s.totalExpenses).toBeCloseTo(300);
+  });
+
+  test('mileage: false zeroes miles and deduction', () => {
+    const s = calcOwnerOpSummary([], { ...base, startOdometer: 1000, endOdometer: 2000 }, [], { mileage: false });
+    expect(s.milesDriven).toBe(0);
+    expect(s.mileageDeduction).toBe(0);
+  });
+
+  test('custom mileageRate is used', () => {
+    const s = calcOwnerOpSummary([], { ...base, startOdometer: 0, endOdometer: 100, mileageRate: 0.2 });
+    expect(s.mileageDeduction).toBeCloseTo(20);
+  });
+
+  test('default rate 0.14 when mileageRate absent', () => {
+    const s = calcOwnerOpSummary([], { ...base, startOdometer: 0, endOdometer: 100 });
+    expect(s.mileageDeduction).toBeCloseTo(14);
+  });
+
+  test('normalizeExpenses defaults mileageRate to 0.14', () => {
+    expect(normalizeExpenses(base).mileageRate).toBe(0.14);
+    expect(normalizeExpenses({ ...base, mileageRate: 0.2 }).mileageRate).toBe(0.2);
+    expect(normalizeExpenses({ ...base, mileageRate: 0 }).mileageRate).toBe(0.14);
   });
 });
