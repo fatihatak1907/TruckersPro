@@ -8,6 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { StatePicker } from '../../components/StatePicker';
+import { ConfirmedAmountField } from '../../components/ConfirmedAmountField';
+import { splitCityState, joinCityState } from '../../utils/usStates';
 import { saveLoad } from '../../storage/storage';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { C } from '../../theme';
@@ -19,46 +22,56 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
   const { weekKey } = useWeek();
   const editLoad: LoadEntry | undefined = route.params?.load;
 
-  const [startLocation, setStartLocation] = useState('');
-  const [endLocation, setEndLocation] = useState('');
-  const [paidMileage, setPaidMileage] = useState('');
-  const [centsPerMile, setCentsPerMile] = useState('');
+  const [startCity, setStartCity] = useState('');
+  const [startState, setStartState] = useState<string | null>(null);
+  const [endCity, setEndCity] = useState('');
+  const [endState, setEndState] = useState<string | null>(null);
+  const [paidMileage, setPaidMileage] = useState(0);
+  const [centsPerMile, setCentsPerMile] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       if (editLoad) {
-        setStartLocation(editLoad.startLocation);
-        setEndLocation(editLoad.endLocation);
-        setPaidMileage(editLoad.paidMileage != null ? String(editLoad.paidMileage) : '');
-        setCentsPerMile(editLoad.centsPerMile != null ? String(editLoad.centsPerMile) : '');
+        const start = splitCityState(editLoad.startLocation);
+        const end = splitCityState(editLoad.endLocation);
+        setStartCity(start.city);
+        setStartState(start.state);
+        setEndCity(end.city);
+        setEndState(end.state);
+        setPaidMileage(editLoad.paidMileage ?? 0);
+        setCentsPerMile(editLoad.centsPerMile ?? 0);
       } else {
-        setStartLocation('');
-        setEndLocation('');
-        setPaidMileage('');
-        setCentsPerMile('');
+        setStartCity(''); setStartState(null);
+        setEndCity(''); setEndState(null);
+        setPaidMileage(0);
+        setCentsPerMile(0);
       }
     }, [editLoad?.id])
   );
 
   const loadEarnings =
-    paidMileage && centsPerMile
-      ? (parseFloat(paidMileage) * parseFloat(centsPerMile)).toFixed(2)
+    paidMileage > 0 && centsPerMile > 0
+      ? (paidMileage * centsPerMile).toFixed(2)
       : null;
 
   async function handleSave() {
-    if (!startLocation || !endLocation || !paidMileage || !centsPerMile) {
-      Alert.alert('Missing fields', 'Please fill in all fields.');
+    if (!startCity.trim() || !startState || !endCity.trim() || !endState) {
+      Alert.alert('Missing fields', 'Please enter city and select a state for both start and end.');
+      return;
+    }
+    if (paidMileage <= 0 || centsPerMile <= 0) {
+      Alert.alert('Missing fields', 'Enter and confirm the paid mileage and rate.');
       return;
     }
     const load: LoadEntry = {
       id: editLoad?.id ?? uuidv4(),
       weekKey: editLoad?.weekKey ?? weekKey,
       driverType: 'company-mile',
-      startLocation,
-      endLocation,
+      startLocation: joinCityState(startCity, startState),
+      endLocation: joinCityState(endCity, endState),
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
-      paidMileage: parseFloat(paidMileage),
-      centsPerMile: parseFloat(centsPerMile),
+      paidMileage,
+      centsPerMile,
     };
     await saveLoad(load);
     navigation.setParams({ load: undefined });
@@ -84,20 +97,33 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <Text style={s.fieldLabel}>STARTING STATE / ADDRESS</Text>
-          <TextInput style={s.input} value={startLocation} onChangeText={setStartLocation} placeholder="e.g. TX or Dallas, TX" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>STARTING CITY</Text>
+          <TextInput style={s.input} value={startCity} onChangeText={setStartCity} placeholder="e.g. Dallas" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>STARTING STATE</Text>
+          <StatePicker label="Select state" value={startState} onSelect={setStartState} />
 
-          <Text style={s.fieldLabel}>END STATE / ADDRESS</Text>
-          <TextInput style={s.input} value={endLocation} onChangeText={setEndLocation} placeholder="e.g. CA or Los Angeles, CA" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>ENDING CITY</Text>
+          <TextInput style={s.input} value={endCity} onChangeText={setEndCity} placeholder="e.g. Los Angeles" placeholderTextColor={C.muted} />
+          <Text style={s.fieldLabel}>ENDING STATE</Text>
+          <StatePicker label="Select state" value={endState} onSelect={setEndState} />
 
-          <Text style={s.fieldLabel}>PAID MILEAGE</Text>
-          <TextInput style={s.input} value={paidMileage} onChangeText={setPaidMileage} keyboardType="number-pad" placeholder="e.g. 500" placeholderTextColor={C.muted} />
-
-          <Text style={s.fieldLabel}>RATE ($ PER MILE)</Text>
-          <View style={s.inputRow}>
-            <Text style={s.prefix}>$</Text>
-            <TextInput style={s.inputFlex} value={centsPerMile} onChangeText={setCentsPerMile} keyboardType="decimal-pad" placeholder="0.55" placeholderTextColor={C.muted} />
-          </View>
+          <ConfirmedAmountField
+            key={`paidMileage:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="PAID MILEAGE"
+            amount={paidMileage}
+            money={false}
+            placeholder="e.g. 500"
+            onCommit={(v) => setPaidMileage(v)}
+            onDelete={() => setPaidMileage(0)}
+          />
+          <ConfirmedAmountField
+            key={`centsPerMile:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="RATE ($ PER MILE)"
+            amount={centsPerMile}
+            placeholder="0.55"
+            onCommit={(v) => setCentsPerMile(v)}
+            onDelete={() => setCentsPerMile(0)}
+          />
 
           {loadEarnings !== null && (
             <View style={s.calcBox}>
@@ -126,13 +152,6 @@ const s = StyleSheet.create({
     padding: 16, marginBottom: 12,
     fontSize: 16, color: C.text,
   },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: C.card, borderRadius: 16,
-    paddingHorizontal: 16, marginBottom: 12,
-  },
-  prefix: { fontSize: 16, color: C.sub },
-  inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
   calcBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 20,

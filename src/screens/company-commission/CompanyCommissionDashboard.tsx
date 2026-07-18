@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
-import { getLoadsForWeek, deleteLoad } from '../../storage/storage';
+import { getLoadsForWeek, deleteLoad, getProfileName, saveProfileName } from '../../storage/storage';
 import { calcCompanyCommissionSummary } from '../../utils/calculations';
 import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
 import { C } from '../../theme';
@@ -20,14 +20,25 @@ type Props = { navigation: any };
 export function CompanyCommissionDashboard({ navigation }: Props) {
   const { weekKey, goToPrev, goToNext, canGoPrev, canGoNext } = useWeek();
   const [loads, setLoads] = useState<LoadEntry[]>([]);
+  const [driverName, setDriverName] = useState('');
 
   useFocusEffect(
     useCallback(() => {
       getLoadsForWeek('company-commission', weekKey).then(setLoads);
+      getProfileName().then(setDriverName);
     }, [weekKey])
   );
 
   const summary = loads.length > 0 ? calcCompanyCommissionSummary(loads) : { weekKey, totalEarnings: 0, netProfit: 0 };
+
+  function handleEditName() {
+    Alert.prompt('Driver / Company Name', '', async (text) => {
+      if (text !== null && text !== undefined) {
+        await saveProfileName(text.trim());
+        setDriverName(text.trim());
+      }
+    }, 'plain-text', driverName);
+  }
 
   function handleEdit(load: LoadEntry) { navigation.navigate('AddLoad', { load }); }
 
@@ -45,8 +56,9 @@ export function CompanyCommissionDashboard({ navigation }: Props) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
       <ScreenHeader
-        title="Company Commission"
-        subtitle="Driver dashboard"
+        title={driverName || 'Company Commission'}
+        subtitle={driverName ? 'Driver dashboard' : 'Tap to add name'}
+        onPress={handleEditName}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <SyncStatusBadge />
