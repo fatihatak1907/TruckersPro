@@ -14,6 +14,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { SignOutButton } from '../../components/SignOutButton';
 import { SyncStatusBadge } from '../../components/SyncStatusBadge';
 import type { LoadEntry } from '../../types';
+import { NameEditModal } from '../../components/NameEditModal';
 
 type Props = { navigation: any };
 
@@ -21,6 +22,7 @@ export function CompanyMileDashboard({ navigation }: Props) {
   const { weekKey, goToPrev, goToNext, canGoPrev, canGoNext } = useWeek();
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [driverName, setDriverName] = useState('');
+  const [nameModalOpen, setNameModalOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -32,12 +34,7 @@ export function CompanyMileDashboard({ navigation }: Props) {
   const summary = loads.length > 0 ? calcCompanyMileSummary(loads) : { weekKey, totalEarnings: 0, netProfit: 0 };
 
   function handleEditName() {
-    Alert.prompt('Driver / Company Name', '', async (text) => {
-      if (text !== null && text !== undefined) {
-        await saveProfileName(text.trim());
-        setDriverName(text.trim());
-      }
-    }, 'plain-text', driverName);
+    setNameModalOpen(true);
   }
 
   function handleEdit(load: LoadEntry) { navigation.navigate('AddLoad', { load }); }
@@ -110,7 +107,7 @@ export function CompanyMileDashboard({ navigation }: Props) {
                   <Text style={s.loadRoute}>{load.startLocation} → {load.endLocation}</Text>
                 </View>
                 <Text style={s.loadDetail}>
-                  {load.paidMileage} mi × ${load.centsPerMile?.toFixed(2)}/mi = <Text style={s.loadDetailBold}>{fmt((load.paidMileage ?? 0) * (load.centsPerMile ?? 0))}</Text>
+                  {load.paidMileage} mi{(load.extraMileage ?? 0) > 0 ? ` + ${load.extraMileage} extra` : ''} × ${load.centsPerMile?.toFixed(2)}/mi = <Text style={s.loadDetailBold}>{fmt(((load.paidMileage ?? 0) + (load.extraMileage ?? 0)) * (load.centsPerMile ?? 0))}</Text>
                 </Text>
                 <View style={s.loadActions}>
                   <TouchableOpacity style={s.editBtn} onPress={() => handleEdit(load)}>
@@ -133,6 +130,15 @@ export function CompanyMileDashboard({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
+      <NameEditModal
+        visible={nameModalOpen}
+        initialName={driverName}
+        onSave={async (name) => {
+          await saveProfileName(name);
+          setDriverName(name);
+        }}
+        onClose={() => setNameModalOpen(false)}
+      />
     </View>
   );
 }

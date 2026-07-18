@@ -143,6 +143,7 @@ export async function pullFromSupabase(userId: string): Promise<void> {
       commissionRate: row.commission_rate ?? undefined,
       paidMileage: row.paid_mileage ?? undefined,
       centsPerMile: row.cents_per_mile ?? undefined,
+      extraMileage: row.extra_mileage != null ? Number(row.extra_mileage) : undefined,
     };
     const k = `loads:${row.driver_type}:${row.week_key}`;
     (loadsByKey[k] ||= []).push(load);

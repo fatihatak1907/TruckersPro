@@ -60,7 +60,7 @@ export function calcOwnerOpSummary(
 export function calcCompanyMileSummary(loads: LoadEntry[]): CompanyMileWeeklySummary {
   const weekKey = loads[0]?.weekKey ?? '';
   const totalEarnings = loads.reduce(
-    (sum, l) => sum + (l.paidMileage ?? 0) * (l.centsPerMile ?? 0),
+    (sum, l) => sum + ((l.paidMileage ?? 0) + (l.extraMileage ?? 0)) * (l.centsPerMile ?? 0),
     0
   );
   return { weekKey, totalEarnings, netProfit: totalEarnings };

@@ -182,6 +182,57 @@ test('upsertExpenses payload carries custom mileageRate', async () => {
   expect(capturedUpsert.mileage_rate).toBe(0.2);
 });
 
+test('upsertLoad payload includes extra_mileage (null when absent)', async () => {
+  let capturedUpsert: any = null;
+  const upsertMock = jest.fn((row: any) => {
+    capturedUpsert = row;
+    return Promise.resolve({ error: null });
+  });
+  const fromMock = jest.fn(() => ({ upsert: upsertMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(fromMock);
+  supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+  await syncEngine.enqueue({
+    kind: 'upsertLoad',
+    payload: {
+      id: 'load-1', weekKey: '2026-05-25', driverType: 'company-mile',
+      startLocation: 'A', endLocation: 'B', createdAt: '2026-05-25T12:00:00Z',
+      paidMileage: 500, centsPerMile: 0.55,
+    } as any,
+  });
+
+  await syncEngine.flush();
+
+  expect(fromMock).toHaveBeenCalledWith('loads');
+  expect(capturedUpsert.extra_mileage).toBeNull();
+});
+
+test('upsertLoad payload carries extraMileage value', async () => {
+  let capturedUpsert: any = null;
+  const upsertMock = jest.fn((row: any) => {
+    capturedUpsert = row;
+    return Promise.resolve({ error: null });
+  });
+  const fromMock = jest.fn(() => ({ upsert: upsertMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(fromMock);
+  supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+  await syncEngine.enqueue({
+    kind: 'upsertLoad',
+    payload: {
+      id: 'load-1', weekKey: '2026-05-25', driverType: 'company-mile',
+      startLocation: 'A', endLocation: 'B', createdAt: '2026-05-25T12:00:00Z',
+      paidMileage: 500, centsPerMile: 0.55, extraMileage: 50,
+    } as any,
+  });
+
+  await syncEngine.flush();
+
+  expect(capturedUpsert.extra_mileage).toBe(50);
+});
+
 test('flush is a no-op when no user is signed in', async () => {
   const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
   const { supabase } = require('../src/supabase/client');
