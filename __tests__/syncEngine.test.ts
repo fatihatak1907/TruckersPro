@@ -118,6 +118,70 @@ test('upsertProfile sends UPDATE with name only', async () => {
   expect(arg.driver_type).toBeUndefined();
 });
 
+test('upsertExpenses payload includes mileage_rate (default 0.14)', async () => {
+  let capturedUpsert: any = null;
+  const upsertMock = jest.fn((row: any) => {
+    capturedUpsert = row;
+    return Promise.resolve({ error: null });
+  });
+  const fromMock = jest.fn(() => ({ upsert: upsertMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(fromMock);
+  supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+  await syncEngine.enqueue({
+    kind: 'upsertExpenses',
+    payload: {
+      weekKey: '2026-05-25', driverType: 'lease',
+      truckPayment: 0, truckPaymentFrequency: 'weekly',
+      truckInsurance: 0, truckInsuranceFrequency: 'weekly',
+      trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
+      trailerLease: 0, trailerLeaseFrequency: 'weekly',
+      iftaCost: 0, iftaCostFrequency: 'weekly',
+      adminFee: 0, adminFeeFrequency: 'weekly',
+      other: 0, otherFrequency: 'weekly', otherExpenses: [],
+      startOdometer: 0, endOdometer: 0,
+    } as any,
+  });
+
+  await syncEngine.flush();
+
+  expect(fromMock).toHaveBeenCalledWith('weekly_expenses');
+  expect(capturedUpsert.mileage_rate).toBe(0.14);
+});
+
+test('upsertExpenses payload carries custom mileageRate', async () => {
+  let capturedUpsert: any = null;
+  const upsertMock = jest.fn((row: any) => {
+    capturedUpsert = row;
+    return Promise.resolve({ error: null });
+  });
+  const fromMock = jest.fn(() => ({ upsert: upsertMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(fromMock);
+  supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+  await syncEngine.enqueue({
+    kind: 'upsertExpenses',
+    payload: {
+      weekKey: '2026-05-25', driverType: 'lease',
+      truckPayment: 0, truckPaymentFrequency: 'weekly',
+      truckInsurance: 0, truckInsuranceFrequency: 'weekly',
+      trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
+      trailerLease: 0, trailerLeaseFrequency: 'weekly',
+      iftaCost: 0, iftaCostFrequency: 'weekly',
+      adminFee: 0, adminFeeFrequency: 'weekly',
+      other: 0, otherFrequency: 'weekly', otherExpenses: [],
+      startOdometer: 0, endOdometer: 0,
+      mileageRate: 0.2,
+    } as any,
+  });
+
+  await syncEngine.flush();
+
+  expect(capturedUpsert.mileage_rate).toBe(0.2);
+});
+
 test('flush is a no-op when no user is signed in', async () => {
   const upsertMock = jest.fn(() => Promise.resolve({ error: null }));
   const { supabase } = require('../src/supabase/client');

@@ -93,6 +93,7 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
         other_expenses: e.otherExpenses ?? [],
         start_odometer: e.startOdometer,
         end_odometer: e.endOdometer,
+        mileage_rate: e.mileageRate ?? 0.14,
         updated_at: new Date().toISOString(),
       });
       if (error) throw new Error(error.message);
