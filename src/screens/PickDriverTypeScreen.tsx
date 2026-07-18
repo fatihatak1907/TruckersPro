@@ -54,7 +54,7 @@ export function PickDriverTypeScreen({ userId, onDone }: Props) {
       <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 24 }]}>
         <View style={s.hero}>
-          <Image source={require('../../Logo.jpeg')} style={s.logo} resizeMode="contain" />
+          <Image source={require('../../logo.png')} style={s.logo} resizeMode="contain" />
           <Text style={s.appName}>Welcome to TruckersPro</Text>
           <Text style={s.tagline}>Pick your driver type to continue</Text>
         </View>

@@ -13,14 +13,14 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#eeeff0"
+          "backgroundColor": "#010100"
         }
       ]
     ],
     "android": {
       "package": "com.fatihatak.truckerspro",
       "adaptiveIcon": {
-        "backgroundColor": "#eeeff0",
+        "backgroundColor": "#010100",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

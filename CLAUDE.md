@@ -129,7 +129,7 @@ The suite must be fully green — a failing test blocks merges and releases.
 
 ## Assets
 
-The app logo is `Logo.jpeg` in the project root (not in `assets/`). Referenced from screens as `require('../../Logo.jpeg')` and from `App.tsx` as `require('./Logo.jpeg')`. The welcome screen background is `assets/welcome-bg.jpg` — user-supplied; current file is a Logo.jpeg placeholder until a real photo is dropped in.
+The app logo is `logo.png` in the project root (not in `assets/`). Referenced from screens as `require('../../logo.png')` and from `App.tsx` as `require('./logo.png')`. All store/launcher assets regenerate from it via `node scripts/gen-assets.js`. The welcome screen background is `assets/welcome-bg.jpg` (currently a jpeg copy of the logo).
 
 ## Process notes
 

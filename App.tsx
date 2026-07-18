@@ -92,7 +92,7 @@ export default function App() {
   if (authState === 'loading' || authState === 'migrating') {
     content = (
       <View style={s.center}>
-        <Image source={require('./Logo.jpeg')} style={s.splashLogo} resizeMode="contain" />
+        <Image source={require('./logo.png')} style={s.splashLogo} resizeMode="contain" />
         <Text style={s.splashName}>TruckersPro</Text>
         <ActivityIndicator size="large" color={C.accent} style={{ marginTop: 20 }} />
         <Text style={s.loadingText}>

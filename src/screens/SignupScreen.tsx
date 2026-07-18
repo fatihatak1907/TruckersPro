@@ -70,7 +70,7 @@ export function SignupScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <View style={s.hero}>
-            <Image source={require('../../Logo.jpeg')} style={s.logo} resizeMode="contain" />
+            <Image source={require('../../logo.png')} style={s.logo} resizeMode="contain" />
             <Text style={s.appName}>Create account</Text>
             <Text style={s.tagline}>Pick your driver type below</Text>
           </View>

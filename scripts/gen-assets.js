@@ -4,7 +4,7 @@
  */
 const sharp = require('sharp');
 const path = require('path');
-const SRC = path.join(__dirname, '..', 'Logo.jpeg');
+const SRC = path.join(__dirname, '..', 'logo.png');
 const A = (f) => path.join(__dirname, '..', 'assets', f);
 
 async function main() {
@@ -27,22 +27,23 @@ async function main() {
   await sharp({ create: { width: 1024, height: 1024, channels: 4, background: { ...bg, alpha: 1 } } })
     .png().toFile(A('android-icon-background.png'));
 
-  // Monochrome: white shape on transparent — luminance-inverted alpha mask
-  const mask = await sharp(SRC).resize(1024, 1024).greyscale().negate().toBuffer();
+  // Monochrome: white shape on transparent — luminance-based alpha mask.
+  // Light-background logos need the mask inverted (dark art = opaque);
+  // dark-background logos use luminance directly (bright art = opaque).
+  const bgIsDark = (bg.r + bg.g + bg.b) / 3 < 128;
+  let maskPipeline = sharp(SRC).resize(1024, 1024).greyscale();
+  if (!bgIsDark) maskPipeline = maskPipeline.negate();
+  const mask = await maskPipeline.toBuffer();
   await sharp({ create: { width: 1024, height: 1024, channels: 3, background: { r: 255, g: 255, b: 255 } } })
     .joinChannel(mask).png().toFile(A('android-icon-monochrome.png'));
 
   // Splash icon: logo at 1024, own background
   await sharp(SRC).resize(1024, 1024).png().toFile(A('splash-icon.png'));
 
-  // Feature graphic 1024x500: logo left, wordmark right, on sampled bg
-  const logoSmall = await sharp(SRC).resize(420, 420).png().toBuffer();
-  const text = Buffer.from(`<svg width="1024" height="500">
-    <text x="470" y="240" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="800" fill="#1c1d22">TruckersPro</text>
-    <text x="472" y="300" font-family="Arial, Helvetica, sans-serif" font-size="34" fill="#4a4d55">Know your real profit, every week</text>
-  </svg>`);
+  // Feature graphic 1024x500: logo centered on sampled bg (the logo carries its own wordmark)
+  const logoSmall = await sharp(SRC).resize(460, 460).png().toBuffer();
   await sharp({ create: { width: 1024, height: 500, channels: 4, background: { ...bg, alpha: 1 } } })
-    .composite([{ input: logoSmall, left: 30, top: 40 }, { input: text, left: 0, top: 0 }])
+    .composite([{ input: logoSmall, gravity: 'center' }])
     .png().toFile(path.join(__dirname, '..', 'store', 'feature-graphic.png'));
 }
 main().catch((e) => { console.error(e); process.exit(1); });

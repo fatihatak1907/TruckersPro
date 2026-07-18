@@ -24,7 +24,7 @@ export function ScreenHeader({ title, subtitle, left, right, showLogo = true, on
     <View style={[s.root, { paddingTop: insets.top + 8 }]}>
       <View style={s.row}>
         {left ?? (showLogo ? (
-          <Image source={require('../../Logo.jpeg')} style={s.logo} resizeMode="contain" />
+          <Image source={require('../../logo.png')} style={s.logo} resizeMode="contain" />
         ) : null)}
         {onPress ? (
           <TouchableOpacity style={s.middle} onPress={onPress} activeOpacity={0.7}>

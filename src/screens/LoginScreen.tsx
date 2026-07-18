@@ -54,7 +54,7 @@ export function LoginScreen({ navigation }: Props) {
           </TouchableOpacity>
 
           <View style={s.hero}>
-            <Image source={require('../../Logo.jpeg')} style={s.logo} resizeMode="contain" />
+            <Image source={require('../../logo.png')} style={s.logo} resizeMode="contain" />
             <Text style={s.appName}>TruckersPro</Text>
             <Text style={s.tagline}>Welcome back</Text>
           </View>
