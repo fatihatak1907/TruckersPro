@@ -17,6 +17,7 @@ import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../../types';
 import { addWeeks } from '../../utils/weekKey';
 import { buildInsight, InsightKind, WeekData } from '../../utils/insights';
 import { InsightsSheet } from '../../components/InsightsSheet';
+import { NameEditModal } from '../../components/NameEditModal';
 
 const EMPTY_EXPENSES: WeeklyExpenses = {
   weekKey: '',
@@ -41,6 +42,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
   const [driverName, setDriverName] = useState('');
   const [openInsight, setOpenInsight] = useState<InsightKind | null>(null);
   const [prevWeek, setPrevWeek] = useState<WeekData | null>(null);
+  const [nameModalOpen, setNameModalOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -72,12 +74,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
   const title = driverType === 'lease' ? 'Lease Driver' : 'Owner Operator';
 
   function handleEditName() {
-    Alert.prompt('Driver / Company Name', '', async (text) => {
-      if (text !== null && text !== undefined) {
-        await saveProfileName(text.trim());
-        setDriverName(text.trim());
-      }
-    }, 'plain-text', driverName);
+    setNameModalOpen(true);
   }
 
   function handleEdit(load: LoadEntry) {
@@ -198,6 +195,15 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
             : null
         }
         onClose={() => setOpenInsight(null)}
+      />
+      <NameEditModal
+        visible={nameModalOpen}
+        initialName={driverName}
+        onSave={async (name) => {
+          await saveProfileName(name);
+          setDriverName(name);
+        }}
+        onClose={() => setNameModalOpen(false)}
       />
     </View>
   );
