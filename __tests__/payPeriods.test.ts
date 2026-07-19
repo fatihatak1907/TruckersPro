@@ -44,10 +44,10 @@ describe('todayKey', () => {
 });
 
 describe('defaultSchedule', () => {
-  it('is weekly, payDay Friday, starting on the current week Monday', () => {
-    const today = new Date('2026-07-17T12:00:00Z'); // Friday
+  it('is weekly, payDay Friday, starting today (never a past date)', () => {
+    const today = new Date(2026, 6, 17, 12, 0, 0); // Friday, local noon
     expect(defaultSchedule(today)).toEqual({
-      startDate: '2026-07-13',
+      startDate: '2026-07-17',
       frequency: 'weekly',
       payDay: 5,
     });

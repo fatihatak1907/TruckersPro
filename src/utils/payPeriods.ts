@@ -36,9 +36,12 @@ export function todayKey(now: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Default for existing users and anyone who skips setup: weekly, paid Friday. */
+/** Default for existing users and anyone who skips setup: weekly, paid Friday.
+ * startDate is today (not this week's Monday) so it never shows a past date
+ * next to the no-past-dates calendar; weekly periods are Monday-aligned
+ * regardless of startDate, so the period math is unchanged. */
 export function defaultSchedule(today: Date = new Date()): PaySchedule {
-  return { startDate: getWeekKey(today), frequency: 'weekly', payDay: 5 };
+  return { startDate: todayKey(today), frequency: 'weekly', payDay: 5 };
 }
 
 /** Monday of the week containing schedule.startDate — the biweekly lattice anchor. */
