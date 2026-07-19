@@ -106,6 +106,20 @@ export async function getDriverType(): Promise<string | null> {
 }
 
 export const PROFILE_SCHEDULE_KEY = 'profile:schedule';
+
+// Owner of the local data. Lives under the profile: prefix ON PURPOSE: a clean
+// sign-out wipes it with everything else (no mismatch possible afterwards),
+// while an interrupted wipe leaves it behind together with the leftovers it
+// guards — so App bootstrap can detect the account switch and purge.
+const LAST_USER_ID_KEY = 'profile:last_user_id';
+
+export async function getLastUserId(): Promise<string | null> {
+  return AsyncStorage.getItem(LAST_USER_ID_KEY);
+}
+
+export async function setLastUserId(uid: string): Promise<void> {
+  await AsyncStorage.setItem(LAST_USER_ID_KEY, uid);
+}
 export const SCHEDULE_BANNER_DISMISSED_KEY = 'profile:schedule_banner_dismissed';
 
 export async function saveScheduleLocal(schedule: PaySchedule): Promise<void> {

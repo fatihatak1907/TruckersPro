@@ -14,7 +14,7 @@ import { PickDriverTypeScreen } from './src/screens/PickDriverTypeScreen';
 import { supabase } from './src/supabase/client';
 import { syncEngine } from './src/sync/syncEngine';
 import { runMigrationAndPull } from './src/sync/migration';
-import { saveDriverType } from './src/storage/storage';
+import { saveDriverType, wipeAll, getLastUserId, setLastUserId } from './src/storage/storage';
 import { C } from './src/theme';
 
 type AuthState = 'loading' | 'signed-out' | 'needs-profile' | 'migrating' | 'ready' | 'error';
@@ -71,6 +71,14 @@ export default function App() {
   async function bootstrap(uid: string) {
     try {
       setUserId(uid);
+      // A different account logged in on this device (e.g. sign-out wipe was
+      // interrupted, or the app was killed mid-sign-out): purge every leftover
+      // local key so the previous user's schedule/data can't leak into — or be
+      // uploaded to — this account. The pull below restores this user's data.
+      const lastUid = await getLastUserId();
+      if (lastUid && lastUid !== uid) {
+        await wipeAll();
+      }
       let profile = await fetchProfileWithRetry(uid);
       if (!profile) {
         profile = await createProfileFromMetadata(uid);
@@ -81,6 +89,7 @@ export default function App() {
       }
       setAuthState('migrating');
       await saveDriverType(profile.driver_type);
+      await setLastUserId(uid);
       setDriverType(profile.driver_type);
       await runMigrationAndPull(uid);
       syncEngine.start();
@@ -107,6 +116,9 @@ export default function App() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         syncEngine.stop();
+        // Wipe here too (not only in confirmAndSignOut) so session-expiry and
+        // any other sign-out path also clears local data. Idempotent.
+        wipeAll().catch(() => {});
         setUserId(null);
         setDriverType(null);
         setAuthState('signed-out');

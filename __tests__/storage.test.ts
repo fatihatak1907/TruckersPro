@@ -9,6 +9,9 @@ import {
   saveSchedule,
   saveScheduleLocal,
   getSchedule,
+  getLastUserId,
+  setLastUserId,
+  wipeAll,
 } from '../src/storage/storage';
 import type { LoadEntry, WeeklyExpenses } from '../src/types';
 
@@ -182,5 +185,21 @@ describe('pay schedule storage', () => {
     await saveScheduleLocal(schedule);
     expect(await getSchedule()).toEqual(schedule);
     expect(await AsyncStorage.getItem(SYNC_QUEUE_KEY)).toBeNull();
+  });
+});
+
+describe('account ownership guard', () => {
+  test('last user id round-trips', async () => {
+    expect(await getLastUserId()).toBeNull();
+    await setLastUserId('uid-1');
+    expect(await getLastUserId()).toBe('uid-1');
+  });
+
+  test('wipeAll clears the last user id together with profile data', async () => {
+    await setLastUserId('uid-1');
+    await saveScheduleLocal({ startDate: '2026-07-13', frequency: 'weekly', payDay: 5 });
+    await wipeAll();
+    expect(await getLastUserId()).toBeNull();
+    expect(await getSchedule()).toBeNull();
   });
 });
