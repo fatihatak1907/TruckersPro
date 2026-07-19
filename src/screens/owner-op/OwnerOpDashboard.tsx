@@ -102,8 +102,8 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
       <ScreenHeader
-        title={title}
-        subtitle={driverName || 'Tap to add name'}
+        title={driverName || 'Tap to add name'}
+        subtitle={title}
         onPress={handleEditName}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

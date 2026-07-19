@@ -46,6 +46,8 @@ export type WeeklyExpenses = {
   trailerLeaseFrequency: Frequency;
   iftaCost: number;
   iftaCostFrequency: Frequency;
+  toll?: number; // optional: absent in pre-v8 saved weeks, read as 0
+  tollFrequency?: Frequency;
   adminFee: number;
   adminFeeFrequency: Frequency;
   other: number;

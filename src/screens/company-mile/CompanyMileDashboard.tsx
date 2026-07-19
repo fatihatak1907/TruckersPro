@@ -59,8 +59,8 @@ export function CompanyMileDashboard({ navigation }: Props) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
       <ScreenHeader
-        title={driverName || 'Company Per Mile'}
-        subtitle={driverName ? 'Driver dashboard' : 'Tap to add name'}
+        title={driverName || 'Tap to add name'}
+        subtitle="Company Per Mile"
         onPress={handleEditName}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

@@ -57,6 +57,7 @@ export function calcOwnerOpSummary(
     toPeriod(expenses.trailerInsurance, expenses.trailerInsuranceFrequency, period) +
     toPeriod(expenses.trailerLease, expenses.trailerLeaseFrequency, period) +
     toPeriod(expenses.iftaCost, expenses.iftaCostFrequency, period) +
+    toPeriod(expenses.toll ?? 0, expenses.tollFrequency, period) +
     toPeriod(expenses.adminFee, expenses.adminFeeFrequency, period) +
     (expenses.otherExpenses ?? []).reduce((s, o) => s + toPeriod(o.amount, o.frequency, period), 0);
 

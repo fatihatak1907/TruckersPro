@@ -95,40 +95,77 @@ export function ConfirmedAmountField({
     );
   }
 
+  // No frequency (odometers, mileage rate): amount + confirm on one line.
+  if (!showFreq) {
+    return (
+      <View style={s.expenseBlock}>
+        <Text style={s.fieldLabel}>{label}</Text>
+        <View style={s.inputRow}>
+          {money && <Text style={s.prefix}>$</Text>}
+          <TextInput
+            style={s.inputFlex}
+            value={draft}
+            onChangeText={setDraft}
+            onFocus={() => { if (!editing) startEdit(); }}
+            keyboardType={money ? 'decimal-pad' : 'number-pad'}
+            placeholder={placeholder}
+            placeholderTextColor={C.muted}
+          />
+          {editing && amount > 0 && (
+            <TouchableOpacity style={s.cancelBtn} onPress={() => { setEditing(false); setDraft(''); }}>
+              <Ionicons name="close" size={18} color={C.sub} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[s.confirmBtn, !draft && s.confirmBtnDisabled]}
+            onPress={confirm}
+            disabled={!draft}
+          >
+            <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // With frequency: line 1 = amount, line 2 = occurrence toggle + actions.
   return (
     <View style={s.expenseBlock}>
       <Text style={s.fieldLabel}>{label}</Text>
-      <View style={s.inputRow}>
-        {money && <Text style={s.prefix}>$</Text>}
-        <TextInput
-          style={s.inputFlex}
-          value={draft}
-          onChangeText={setDraft}
-          onFocus={() => { if (!editing) startEdit(); }}
-          keyboardType={money ? 'decimal-pad' : 'number-pad'}
-          placeholder={placeholder}
-          placeholderTextColor={C.muted}
-        />
-        {showFreq && (
+      <View style={s.inputCol}>
+        <View style={s.amountRow}>
+          {money && <Text style={s.prefix}>$</Text>}
+          <TextInput
+            style={s.inputFlex}
+            value={draft}
+            onChangeText={setDraft}
+            onFocus={() => { if (!editing) startEdit(); }}
+            keyboardType={money ? 'decimal-pad' : 'number-pad'}
+            placeholder={placeholder}
+            placeholderTextColor={C.muted}
+          />
+        </View>
+        <View style={s.controlRow}>
           <FreqToggle
             value={draftFreq}
             onChange={setDraftFreq}
             options={['weekly', 'biweekly', 'monthly'] as const}
             labels={{ weekly: 'W', biweekly: '2W', monthly: 'M' }}
           />
-        )}
-        {editing && amount > 0 && (
-          <TouchableOpacity style={s.cancelBtn} onPress={() => { setEditing(false); setDraft(''); }}>
-            <Ionicons name="close" size={18} color={C.sub} />
+          <View style={{ flex: 1 }} />
+          {editing && amount > 0 && (
+            <TouchableOpacity style={s.cancelBtn} onPress={() => { setEditing(false); setDraft(''); }}>
+              <Ionicons name="close" size={18} color={C.sub} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[s.confirmBtn, !draft && s.confirmBtnDisabled]}
+            onPress={confirm}
+            disabled={!draft}
+          >
+            <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
           </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[s.confirmBtn, !draft && s.confirmBtnDisabled]}
-          onPress={confirm}
-          disabled={!draft}
-        >
-          <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
-        </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -142,6 +179,12 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 16,
     paddingLeft: 16, paddingRight: 6, marginBottom: 12,
   },
+  inputCol: {
+    backgroundColor: C.card, borderRadius: 16,
+    paddingHorizontal: 12, paddingBottom: 8, marginBottom: 12,
+  },
+  amountRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4 },
+  controlRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   prefix: { fontSize: 16, color: C.sub },
   inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
   lockedRow: {

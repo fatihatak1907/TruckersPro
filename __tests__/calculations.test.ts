@@ -211,6 +211,25 @@ describe('toPeriod', () => {
     expect(toPeriod(100, undefined, bi)).toBe(200); // undefined behaves as weekly
   });
 
+  it('toll flows into fixed expenses via its own frequency', () => {
+    const { calcOwnerOpSummary } = require('../src/utils/calculations');
+    const base = {
+      weekKey: '2026-05-25',
+      truckPayment: 0, truckPaymentFrequency: 'weekly',
+      truckInsurance: 0, truckInsuranceFrequency: 'weekly',
+      trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
+      trailerLease: 0, trailerLeaseFrequency: 'weekly',
+      iftaCost: 0, iftaCostFrequency: 'weekly',
+      adminFee: 0, adminFeeFrequency: 'weekly',
+      other: 0, otherFrequency: 'weekly',
+      startOdometer: 0, endOdometer: 0,
+    };
+    const withToll = { ...base, toll: 100, tollFrequency: 'biweekly' };
+    expect(calcOwnerOpSummary([], withToll, [], { mileage: false }).totalExpenses).toBe(50);
+    // Absent toll (pre-v8 data) contributes nothing.
+    expect(calcOwnerOpSummary([], base, [], { mileage: false }).totalExpenses).toBe(0);
+  });
+
   it('biweekly → amount × (period.days / 14)', () => {
     expect(toPeriod(500, 'biweekly', wk)).toBe(250);
     expect(toPeriod(500, 'biweekly', bi)).toBe(500);

@@ -255,6 +255,8 @@ export async function pullFromSupabase(userId: string): Promise<void> {
       trailerLeaseFrequency: row.trailer_lease_frequency ?? 'weekly',
       iftaCost: Number(row.ifta_cost),
       iftaCostFrequency: row.ifta_cost_frequency ?? 'weekly',
+      toll: row.toll != null ? Number(row.toll) : 0,
+      tollFrequency: row.toll_frequency ?? 'weekly',
       adminFee: Number(row.admin_fee),
       adminFeeFrequency: row.admin_fee_frequency ?? 'weekly',
       other: Number(row.other),

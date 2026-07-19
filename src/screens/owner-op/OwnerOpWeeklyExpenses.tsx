@@ -23,6 +23,7 @@ const EMPTY: WeeklyExpenses = {
   trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
   trailerLease: 0, trailerLeaseFrequency: 'weekly',
   iftaCost: 0, iftaCostFrequency: 'weekly',
+  toll: 0, tollFrequency: 'weekly',
   adminFee: 0, adminFeeFrequency: 'weekly',
   other: 0, otherFrequency: 'weekly',
   otherExpenses: [],
@@ -30,7 +31,7 @@ const EMPTY: WeeklyExpenses = {
   mileageRate: 0.14,
 };
 
-type AmountKey = 'truckPayment' | 'truckInsurance' | 'trailerInsurance' | 'trailerLease' | 'iftaCost' | 'adminFee';
+type AmountKey = 'truckPayment' | 'truckInsurance' | 'trailerInsurance' | 'trailerLease' | 'iftaCost' | 'toll' | 'adminFee';
 type FreqKey = `${AmountKey}Frequency`;
 
 const FIXED_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
@@ -39,6 +40,7 @@ const FIXED_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
   { key: 'trailerInsurance', freqKey: 'trailerInsuranceFrequency', label: 'TRAILER INSURANCE' },
   { key: 'trailerLease',     freqKey: 'trailerLeaseFrequency',     label: 'TRAILER LEASE' },
   { key: 'iftaCost',         freqKey: 'iftaCostFrequency',         label: 'IFTA STICKER COST' },
+  { key: 'toll',             freqKey: 'tollFrequency',             label: 'TOLL' },
   { key: 'adminFee',         freqKey: 'adminFeeFrequency',         label: 'ADMIN FEE' },
 ];
 
@@ -76,32 +78,37 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
         placeholderTextColor={C.muted}
       />
       {nameError && <Text style={s.nameError}>Name required</Text>}
-      <View style={s.inputRow}>
-        <Text style={s.prefix}>$</Text>
-        <TextInput
-          style={s.inputFlex}
-          value={draft}
-          onChangeText={setDraft}
-          keyboardType="decimal-pad"
-          placeholder="0.00"
-          placeholderTextColor={C.muted}
-        />
-        <FreqToggle
-          value={freq}
-          onChange={setFreq}
-          options={['once', 'daily', 'weekly', 'biweekly', 'monthly'] as const}
-          labels={{ once: '1x', daily: 'D', weekly: 'W', biweekly: '2W', monthly: 'M' }}
-        />
-        <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
-          <Ionicons name="close" size={18} color={C.sub} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.confirmBtn, !valid && s.confirmBtnDisabled]}
-          onPress={confirm}
-          disabled={!valid}
-        >
-          <Ionicons name="checkmark" size={20} color={valid ? C.accentText : C.muted} />
-        </TouchableOpacity>
+      <View style={s.otherInputCol}>
+        <View style={s.otherAmountRow}>
+          <Text style={s.prefix}>$</Text>
+          <TextInput
+            style={s.inputFlex}
+            value={draft}
+            onChangeText={setDraft}
+            keyboardType="decimal-pad"
+            placeholder="0.00"
+            placeholderTextColor={C.muted}
+          />
+        </View>
+        <View style={s.otherControlRow}>
+          <FreqToggle
+            value={freq}
+            onChange={setFreq}
+            options={['once', 'daily', 'weekly', 'biweekly', 'monthly'] as const}
+            labels={{ once: '1x', daily: 'D', weekly: 'W', biweekly: '2W', monthly: 'M' }}
+          />
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
+            <Ionicons name="close" size={18} color={C.sub} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.confirmBtn, !valid && s.confirmBtnDisabled]}
+            onPress={confirm}
+            disabled={!valid}
+          >
+            <Ionicons name="checkmark" size={20} color={valid ? C.accentText : C.muted} />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -175,8 +182,8 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
             <ConfirmedAmountField
               key={`${f.key}:${weekKey}`}
               label={f.label}
-              amount={exp[f.key]}
-              frequency={exp[f.freqKey]}
+              amount={exp[f.key] ?? 0}
+              frequency={exp[f.freqKey] ?? 'weekly'}
               onCommit={(amount, freq) => commitField(f.key, f.freqKey, amount, freq)}
               onDelete={() => commitField(f.key, f.freqKey, 0, 'weekly')}
             />
@@ -293,6 +300,12 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 16,
     paddingLeft: 16, paddingRight: 6, marginBottom: 12,
   },
+  otherInputCol: {
+    backgroundColor: C.card, borderRadius: 16,
+    paddingHorizontal: 12, paddingBottom: 8, marginBottom: 12,
+  },
+  otherAmountRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4 },
+  otherControlRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   prefix: { fontSize: 16, color: C.sub },
   inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
   lockedRow: {

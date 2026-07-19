@@ -59,8 +59,8 @@ export function CompanyCommissionDashboard({ navigation }: Props) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
       <ScreenHeader
-        title={driverName || 'Company Commission'}
-        subtitle={driverName ? 'Driver dashboard' : 'Tap to add name'}
+        title={driverName || 'Tap to add name'}
+        subtitle="Company Commission"
         onPress={handleEditName}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

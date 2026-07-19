@@ -86,6 +86,7 @@ function expenseRows(w: WeekData, opts?: CalcOpts): InsightRow[] {
     { label: 'Trailer insurance', converted: toPeriod(e.trailerInsurance, e.trailerInsuranceFrequency, period), freq: e.trailerInsuranceFrequency },
     { label: 'Trailer lease', converted: toPeriod(e.trailerLease, e.trailerLeaseFrequency, period), freq: e.trailerLeaseFrequency },
     { label: 'IFTA', converted: toPeriod(e.iftaCost, e.iftaCostFrequency, period), freq: e.iftaCostFrequency },
+    { label: 'Toll', converted: toPeriod(e.toll ?? 0, e.tollFrequency, period), freq: e.tollFrequency ?? 'weekly' },
     { label: 'Admin fee', converted: toPeriod(e.adminFee, e.adminFeeFrequency, period), freq: e.adminFeeFrequency },
     ...(e.otherExpenses ?? []).map((o) => ({
       label: o.label, converted: toPeriod(o.amount, o.frequency, period), freq: o.frequency,

@@ -87,6 +87,8 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
         trailer_lease_frequency: e.trailerLeaseFrequency,
         ifta_cost: e.iftaCost,
         ifta_cost_frequency: e.iftaCostFrequency,
+        toll: e.toll ?? 0,
+        toll_frequency: e.tollFrequency ?? 'weekly',
         admin_fee: e.adminFee,
         admin_fee_frequency: e.adminFeeFrequency,
         other: e.other,
