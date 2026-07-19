@@ -21,12 +21,25 @@ type AuthState = 'loading' | 'signed-out' | 'needs-profile' | 'migrating' | 'rea
 
 async function createProfileFromMetadata(uid: string): Promise<{ driver_type: string; name: string } | null> {
   const { data } = await supabase.auth.getUser();
-  const meta = data.user?.user_metadata as { driver_type?: string; name?: string } | undefined;
+  const meta = data.user?.user_metadata as {
+    driver_type?: string;
+    name?: string;
+    schedule_start_date?: string;
+    schedule_frequency?: string;
+    schedule_pay_day?: number;
+  } | undefined;
   if (!meta?.driver_type) return null;
   const { error } = await supabase.from('profiles').insert({
     user_id: uid,
     driver_type: meta.driver_type,
     name: meta.name ?? '',
+    ...(meta.schedule_start_date
+      ? {
+          schedule_start_date: meta.schedule_start_date,
+          schedule_frequency: meta.schedule_frequency ?? 'weekly',
+          schedule_pay_day: meta.schedule_pay_day ?? 5,
+        }
+      : {}),
   });
   if (error) return null;
   return { driver_type: meta.driver_type, name: meta.name ?? '' };
