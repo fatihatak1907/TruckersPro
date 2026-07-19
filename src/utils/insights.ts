@@ -1,5 +1,5 @@
 import type { LoadEntry, WeeklyExpenses, FuelEntry, Frequency, OtherFrequency } from '../types';
-import { calcOwnerOpSummary, normalizeExpenses } from './calculations';
+import { calcOwnerOpSummary, normalizeExpenses, toPeriod, CalcPeriod } from './calculations';
 import { fmt } from './format';
 
 export type InsightKind = 'net' | 'earnings' | 'expenses' | 'diesel' | 'def' | 'miles' | 'deduction';
@@ -36,10 +36,7 @@ const TITLES: Record<InsightKind, string> = {
   deduction: 'Mileage Deduction',
 };
 
-const toWeekly = (amount: number, freq: Frequency | OtherFrequency | undefined) =>
-  freq === 'monthly' ? amount / 4.33 : freq === 'daily' ? amount * 7 : amount;
-
-type CalcOpts = { mileage?: boolean };
+type CalcOpts = { mileage?: boolean; period?: CalcPeriod };
 
 function metric(kind: InsightKind, w: WeekData, opts?: CalcOpts): number {
   const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries, opts);
@@ -76,37 +73,45 @@ const miles = (w: WeekData) => w.expenses.endOdometer - w.expenses.startOdometer
 const fuelDate = (f: FuelEntry) =>
   new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
-function expenseRows(w: WeekData): InsightRow[] {
-  const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries);
+function expenseRows(w: WeekData, opts?: CalcOpts): InsightRow[] {
+  const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries, opts);
   const e = normalizeExpenses(w.expenses);
+  const period = opts?.period ?? { days: 7, isMonth: false };
+  const isWeeklyPeriod = period.days === 7 && !period.isMonth;
   const commission = w.loads.reduce((sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0), 0);
 
-  const items: { label: string; weekly: number; freq: Frequency | OtherFrequency }[] = [
-    { label: 'Truck payment', weekly: toWeekly(e.truckPayment, e.truckPaymentFrequency), freq: e.truckPaymentFrequency },
-    { label: 'Truck insurance', weekly: toWeekly(e.truckInsurance, e.truckInsuranceFrequency), freq: e.truckInsuranceFrequency },
-    { label: 'Trailer insurance', weekly: toWeekly(e.trailerInsurance, e.trailerInsuranceFrequency), freq: e.trailerInsuranceFrequency },
-    { label: 'Trailer lease', weekly: toWeekly(e.trailerLease, e.trailerLeaseFrequency), freq: e.trailerLeaseFrequency },
-    { label: 'IFTA', weekly: toWeekly(e.iftaCost, e.iftaCostFrequency), freq: e.iftaCostFrequency },
-    { label: 'Admin fee', weekly: toWeekly(e.adminFee, e.adminFeeFrequency), freq: e.adminFeeFrequency },
+  const items: { label: string; converted: number; freq: Frequency | OtherFrequency; actual?: boolean }[] = [
+    { label: 'Truck payment', converted: toPeriod(e.truckPayment, e.truckPaymentFrequency, period), freq: e.truckPaymentFrequency },
+    { label: 'Truck insurance', converted: toPeriod(e.truckInsurance, e.truckInsuranceFrequency, period), freq: e.truckInsuranceFrequency },
+    { label: 'Trailer insurance', converted: toPeriod(e.trailerInsurance, e.trailerInsuranceFrequency, period), freq: e.trailerInsuranceFrequency },
+    { label: 'Trailer lease', converted: toPeriod(e.trailerLease, e.trailerLeaseFrequency, period), freq: e.trailerLeaseFrequency },
+    { label: 'IFTA', converted: toPeriod(e.iftaCost, e.iftaCostFrequency, period), freq: e.iftaCostFrequency },
+    { label: 'Admin fee', converted: toPeriod(e.adminFee, e.adminFeeFrequency, period), freq: e.adminFeeFrequency },
     ...(e.otherExpenses ?? []).map((o) => ({
-      label: o.label, weekly: toWeekly(o.amount, o.frequency), freq: o.frequency,
+      label: o.label, converted: toPeriod(o.amount, o.frequency, period), freq: o.frequency,
     })),
-    { label: 'Commission', weekly: commission, freq: 'weekly' },
-    { label: 'Diesel', weekly: s.totalDiesel, freq: 'weekly' },
-    { label: 'DEF', weekly: s.totalDef, freq: 'weekly' },
+    { label: 'Commission', converted: commission, freq: 'weekly' as const, actual: true },
+    { label: 'Diesel', converted: s.totalDiesel, freq: 'weekly' as const, actual: true },
+    { label: 'DEF', converted: s.totalDef, freq: 'weekly' as const, actual: true },
   ];
 
   return items
-    .filter((i) => i.weekly > 0)
+    .filter((i) => i.converted > 0)
     .map((i) => {
-      const pct = s.totalExpenses > 0 ? `${Math.round((i.weekly / s.totalExpenses) * 100)}% of expenses` : '';
-      const freqNote =
-        i.freq === 'monthly' ? 'monthly ÷ 4.33'
-        : i.freq === 'daily' ? 'daily × 7'
-        : i.freq === 'once' ? 'one-time'
-        : '';
+      const pct = s.totalExpenses > 0 ? `${Math.round((i.converted / s.totalExpenses) * 100)}% of expenses` : '';
+      const freqNote = i.actual
+        ? ''
+        : i.freq === 'once'
+          ? 'one-time'
+          : !isWeeklyPeriod
+            ? 'per period'
+            : i.freq === 'monthly'
+              ? 'monthly ÷ 4.33'
+              : i.freq === 'daily'
+                ? 'daily × 7'
+                : '';
       const sub = [pct, freqNote].filter(Boolean).join(' · ');
-      return { label: i.label, value: fmt(i.weekly), ...(sub ? { sub } : {}) };
+      return { label: i.label, value: fmt(i.converted), ...(sub ? { sub } : {}) };
     });
 }
 
@@ -120,7 +125,7 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
 
   switch (kind) {
     case 'expenses': {
-      rows = expenseRows(thisWeek);
+      rows = expenseRows(thisWeek, opts);
       if (s.totalEarnings > 0)
         footer.push({ label: '% of earnings', value: `${Math.round((s.totalExpenses / s.totalEarnings) * 100)}%` });
       if (s.milesDriven > 0)

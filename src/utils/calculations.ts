@@ -1,7 +1,25 @@
-import type { LoadEntry, WeeklyExpenses, FuelEntry, OwnerOpWeeklySummary, CompanyMileWeeklySummary, CompanyCommissionWeeklySummary, OtherFrequency } from '../types';
+import type { LoadEntry, WeeklyExpenses, FuelEntry, OwnerOpWeeklySummary, CompanyMileWeeklySummary, CompanyCommissionWeeklySummary, Frequency, OtherFrequency } from '../types';
 
-const toWeekly = (amount: number, freq: OtherFrequency | undefined) =>
-  freq === 'monthly' ? amount / 4.33 : freq === 'daily' ? amount * 7 : amount;
+export type CalcPeriod = { days: number; isMonth: boolean };
+
+const WEEKLY_PERIOD: CalcPeriod = { days: 7, isMonth: false };
+
+export function toPeriod(
+  amount: number,
+  freq: Frequency | OtherFrequency | undefined,
+  period: CalcPeriod
+): number {
+  switch (freq) {
+    case 'once':
+      return amount;
+    case 'daily':
+      return amount * period.days;
+    case 'monthly':
+      return period.isMonth ? amount : (amount * (period.days / 7)) / 4.33;
+    default: // 'weekly' or undefined
+      return amount * (period.days / 7);
+  }
+}
 
 export function normalizeExpenses(e: WeeklyExpenses): WeeklyExpenses {
   const otherExpenses = e.otherExpenses ?? [];
@@ -24,20 +42,21 @@ export function calcOwnerOpSummary(
   loads: LoadEntry[],
   rawExpenses: WeeklyExpenses,
   fuelEntries: FuelEntry[] = [],
-  opts?: { mileage?: boolean }
+  opts?: { mileage?: boolean; period?: CalcPeriod }
 ): OwnerOpWeeklySummary {
   const expenses = normalizeExpenses(rawExpenses);
+  const period = opts?.period ?? WEEKLY_PERIOD;
   const weekKey = expenses.weekKey;
   const totalEarnings = loads.reduce((sum, l) => sum + (l.earnings ?? 0) + (l.tonu ?? 0), 0);
 
   const fixedExpenses =
-    toWeekly(expenses.truckPayment, expenses.truckPaymentFrequency) +
-    toWeekly(expenses.truckInsurance, expenses.truckInsuranceFrequency) +
-    toWeekly(expenses.trailerInsurance, expenses.trailerInsuranceFrequency) +
-    toWeekly(expenses.trailerLease, expenses.trailerLeaseFrequency) +
-    toWeekly(expenses.iftaCost, expenses.iftaCostFrequency) +
-    toWeekly(expenses.adminFee, expenses.adminFeeFrequency) +
-    (expenses.otherExpenses ?? []).reduce((s, o) => s + toWeekly(o.amount, o.frequency), 0);
+    toPeriod(expenses.truckPayment, expenses.truckPaymentFrequency, period) +
+    toPeriod(expenses.truckInsurance, expenses.truckInsuranceFrequency, period) +
+    toPeriod(expenses.trailerInsurance, expenses.trailerInsuranceFrequency, period) +
+    toPeriod(expenses.trailerLease, expenses.trailerLeaseFrequency, period) +
+    toPeriod(expenses.iftaCost, expenses.iftaCostFrequency, period) +
+    toPeriod(expenses.adminFee, expenses.adminFeeFrequency, period) +
+    (expenses.otherExpenses ?? []).reduce((s, o) => s + toPeriod(o.amount, o.frequency, period), 0);
 
   const commissionExpenses = loads.reduce(
     (sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0),

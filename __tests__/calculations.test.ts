@@ -3,6 +3,7 @@ import {
   calcCompanyMileSummary,
   calcCompanyCommissionSummary,
   normalizeExpenses,
+  toPeriod,
 } from '../src/utils/calculations';
 import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../src/types';
 
@@ -183,5 +184,88 @@ describe('once frequency + mileage options', () => {
     expect(normalizeExpenses(base).mileageRate).toBe(0.14);
     expect(normalizeExpenses({ ...base, mileageRate: 0.2 }).mileageRate).toBe(0.2);
     expect(normalizeExpenses({ ...base, mileageRate: 0 }).mileageRate).toBe(0.14);
+  });
+});
+
+describe('toPeriod', () => {
+  const wk = { days: 7, isMonth: false };
+  const bi = { days: 14, isMonth: false };
+  const mo31 = { days: 31, isMonth: true };
+
+  it('once → amount, regardless of period', () => {
+    expect(toPeriod(100, 'once', wk)).toBe(100);
+    expect(toPeriod(100, 'once', bi)).toBe(100);
+    expect(toPeriod(100, 'once', mo31)).toBe(100);
+  });
+
+  it('daily → amount × period.days', () => {
+    expect(toPeriod(10, 'daily', wk)).toBe(70);
+    expect(toPeriod(10, 'daily', bi)).toBe(140);
+    expect(toPeriod(10, 'daily', mo31)).toBe(310);
+  });
+
+  it('weekly → amount × (period.days / 7)', () => {
+    expect(toPeriod(100, 'weekly', wk)).toBe(100);
+    expect(toPeriod(100, 'weekly', bi)).toBe(200);
+    expect(toPeriod(700, 'weekly', mo31)).toBe(3100);
+    expect(toPeriod(100, undefined, bi)).toBe(200); // undefined behaves as weekly
+  });
+
+  it('monthly → passthrough for true months, ×(days/7)/4.33 otherwise', () => {
+    expect(toPeriod(866, 'monthly', mo31)).toBe(866);
+    expect(toPeriod(866, 'monthly', wk)).toBeCloseTo(200, 5); // 866 / 4.33
+    expect(toPeriod(866, 'monthly', bi)).toBeCloseTo(400, 5); // 866 × 2 / 4.33
+  });
+
+  it('weekly period conversion is byte-identical to the legacy toWeekly', () => {
+    expect(toPeriod(600, 'monthly', wk)).toBe(600 / 4.33);
+    expect(toPeriod(10, 'daily', wk)).toBe(10 * 7);
+    expect(toPeriod(123.45, 'weekly', wk)).toBe(123.45);
+  });
+});
+
+describe('calcOwnerOpSummary with opts.period', () => {
+  const loads: LoadEntry[] = [
+    {
+      id: 'p1', weekKey, driverType: 'owner-op',
+      startLocation: 'TX', endLocation: 'CA',
+      createdAt: '2026-05-25',
+      earnings: 3000, commissionRate: 0.10,
+    },
+  ];
+  const fuel: FuelEntry[] = [
+    { id: 'pf1', weekKey, type: 'diesel', cost: 400, createdAt: '2026-05-25T10:00:00Z' },
+  ];
+  const expenses: WeeklyExpenses = {
+    weekKey,
+    truckPayment: 600, truckPaymentFrequency: 'weekly',
+    truckInsurance: 250, truckInsuranceFrequency: 'weekly',
+    trailerInsurance: 80, trailerInsuranceFrequency: 'weekly',
+    trailerLease: 200, trailerLeaseFrequency: 'weekly',
+    iftaCost: 50, iftaCostFrequency: 'weekly',
+    adminFee: 40, adminFeeFrequency: 'weekly',
+    other: 0, otherFrequency: 'weekly',
+    startOdometer: 0, endOdometer: 0,
+  };
+
+  it('doubles weekly fixed expenses over a 14-day period; loads and fuel stay actuals', () => {
+    const r = calcOwnerOpSummary(loads, expenses, fuel, { period: { days: 14, isMonth: false } });
+    // fixed = (600+250+80+200+50+40) × 2 = 2440; commission = 300; fuel = 400
+    expect(r.totalExpenses).toBeCloseTo(2440 + 300 + 400, 5);
+    expect(r.totalEarnings).toBe(3000);
+  });
+
+  it('passes monthly-frequency amounts through unchanged for a true month period', () => {
+    const monthlyTruck = { ...expenses, truckPaymentFrequency: 'monthly' as const };
+    const r = calcOwnerOpSummary(loads, monthlyTruck, fuel, { period: { days: 31, isMonth: true } });
+    // truck 600 passthrough; weekly items × 31/7
+    const fixed = 600 + (250 + 80 + 200 + 50 + 40) * (31 / 7);
+    expect(r.totalExpenses).toBeCloseTo(fixed + 300 + 400, 5);
+  });
+
+  it('omitting opts.period matches an explicit weekly period exactly', () => {
+    const a = calcOwnerOpSummary(loads, expenses, fuel);
+    const b = calcOwnerOpSummary(loads, expenses, fuel, { period: { days: 7, isMonth: false } });
+    expect(a).toEqual(b);
   });
 });
