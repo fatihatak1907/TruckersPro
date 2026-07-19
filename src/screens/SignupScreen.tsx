@@ -24,7 +24,6 @@ export function SignupScreen({ navigation }: Props) {
   const [showPwd, setShowPwd] = useState(false);
   const [driverType, setDriverType] = useState<DriverTypeChoice | null>(null);
   const [schedule, setSchedule] = useState<PaySchedule>(() => defaultSchedule());
-  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState(false);
@@ -234,21 +233,11 @@ export function SignupScreen({ navigation }: Props) {
             <Text style={[s.label, { marginTop: 16 }]}>I AM A...</Text>
             <DriverTypeGrid selected={driverType} onSelect={setDriverType} />
 
-            <TouchableOpacity
-              style={s.scheduleToggle}
-              onPress={() => setScheduleOpen((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="calendar-outline" size={18} color={C.accent} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.scheduleToggleTitle}>Pay schedule</Text>
-                <Text style={s.scheduleToggleSub}>
-                  {schedule.frequency === 'weekly' ? 'Weekly' : schedule.frequency === 'biweekly' ? 'Bi-weekly' : 'Monthly'} — tap to customize (optional)
-                </Text>
-              </View>
-              <Ionicons name={scheduleOpen ? 'chevron-up' : 'chevron-down'} size={18} color={C.sub} />
-            </TouchableOpacity>
-            {scheduleOpen && <PayScheduleForm value={schedule} onChange={setSchedule} />}
+            <Text style={[s.label, { marginTop: 16 }]}>PAY SCHEDULE</Text>
+            <Text style={s.scheduleHint}>
+              Your first working day, how often you get paid, and your pay day. You can change this anytime.
+            </Text>
+            <PayScheduleForm value={schedule} onChange={setSchedule} />
 
             {error ? <Text style={s.error}>{error}</Text> : null}
 
@@ -307,10 +296,5 @@ const s = StyleSheet.create({
   linkBtn: { alignItems: 'center', marginTop: 16 },
   linkText: { color: C.sub, fontSize: 14 },
   linkAccent: { color: C.accent, fontWeight: '700' },
-  scheduleToggle: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: C.card, borderRadius: 16, padding: 14, marginTop: 8,
-  },
-  scheduleToggleTitle: { fontSize: 14, fontWeight: '800', color: C.text },
-  scheduleToggleSub: { fontSize: 12, color: C.sub, marginTop: 1 },
+  scheduleHint: { fontSize: 13, color: C.sub, lineHeight: 19, marginTop: 2 },
 });
