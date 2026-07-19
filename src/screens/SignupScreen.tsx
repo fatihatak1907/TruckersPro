@@ -7,10 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../supabase/client';
 import { DriverTypeGrid, DriverTypeChoice } from '../components/DriverTypeGrid';
-import { saveDriverType, saveScheduleLocal } from '../storage/storage';
-import { PayScheduleForm } from './PayScheduleScreen';
-import { defaultSchedule } from '../utils/payPeriods';
-import type { PaySchedule } from '../types';
+import { saveDriverType } from '../storage/storage';
 import { C } from '../theme';
 
 type Props = { navigation: any };
@@ -23,7 +20,6 @@ export function SignupScreen({ navigation }: Props) {
   const [confirm, setConfirm] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [driverType, setDriverType] = useState<DriverTypeChoice | null>(null);
-  const [schedule, setSchedule] = useState<PaySchedule>(() => defaultSchedule());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState(false);
@@ -45,12 +41,11 @@ export function SignupScreen({ navigation }: Props) {
       email: trimmed,
       password,
       options: {
+        // No pay schedule here — the user sets it up from the dashboard
+        // whenever they want (setup banner + calendar icon).
         data: {
           driver_type: driverType,
           name: name.trim(),
-          schedule_start_date: schedule.startDate,
-          schedule_frequency: schedule.frequency,
-          schedule_pay_day: schedule.payDay,
         },
       },
     });
@@ -83,9 +78,6 @@ export function SignupScreen({ navigation }: Props) {
       user_id: data.user.id,
       driver_type: driverType,
       name: name.trim(),
-      schedule_start_date: schedule.startDate,
-      schedule_frequency: schedule.frequency,
-      schedule_pay_day: schedule.payDay,
     });
     if (profErr) {
       setSubmitting(false);
@@ -94,7 +86,6 @@ export function SignupScreen({ navigation }: Props) {
     }
 
     await saveDriverType(driverType);
-    await saveScheduleLocal(schedule);
     setSubmitting(false);
   }
 
@@ -233,12 +224,6 @@ export function SignupScreen({ navigation }: Props) {
             <Text style={[s.label, { marginTop: 16 }]}>I AM A...</Text>
             <DriverTypeGrid selected={driverType} onSelect={setDriverType} />
 
-            <Text style={[s.label, { marginTop: 16 }]}>PAY SCHEDULE</Text>
-            <Text style={s.scheduleHint}>
-              Your first working day, how often you get paid, and your pay day. You can change this anytime.
-            </Text>
-            <PayScheduleForm value={schedule} onChange={setSchedule} />
-
             {error ? <Text style={s.error}>{error}</Text> : null}
 
             <TouchableOpacity
@@ -296,5 +281,4 @@ const s = StyleSheet.create({
   linkBtn: { alignItems: 'center', marginTop: 16 },
   linkText: { color: C.sub, fontSize: 14 },
   linkAccent: { color: C.accent, fontWeight: '700' },
-  scheduleHint: { fontSize: 13, color: C.sub, lineHeight: 19, marginTop: 2 },
 });
