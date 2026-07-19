@@ -8,7 +8,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
 import { getLoadsForWeek, deleteLoad, getProfileName, saveProfileName } from '../../storage/storage';
 import { calcCompanyCommissionSummary } from '../../utils/calculations';
-import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
+import { useWeek } from '../../context/WeekContext';
+import { PeriodBar } from '../../components/PeriodBar';
+import { PayScheduleBanner } from '../../components/PayScheduleBanner';
+import { PayScheduleModal } from '../PayScheduleScreen';
 import { C } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SignOutButton } from '../../components/SignOutButton';
@@ -19,7 +22,8 @@ import { NameEditModal } from '../../components/NameEditModal';
 type Props = { navigation: any };
 
 export function CompanyCommissionDashboard({ navigation }: Props) {
-  const { weekKey, goToPrev, goToNext, canGoPrev, canGoNext } = useWeek();
+  const { weekKey, schedule, needsSetup, reloadSchedule } = useWeek();
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [driverName, setDriverName] = useState('');
   const [nameModalOpen, setNameModalOpen] = useState(false);
@@ -65,15 +69,8 @@ export function CompanyCommissionDashboard({ navigation }: Props) {
       />
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
-        <View style={s.weekNavCard}>
-          <TouchableOpacity onPress={goToPrev} disabled={!canGoPrev} style={[s.navBtn, !canGoPrev && s.navBtnDisabled]}>
-            <Ionicons name="chevron-back" size={20} color={C.sub} />
-          </TouchableOpacity>
-          <Text style={s.weekLabel}>{formatWeekDisplay(weekKey)}</Text>
-          <TouchableOpacity onPress={goToNext} disabled={!canGoNext} style={[s.navBtn, !canGoNext && s.navBtnDisabled]}>
-            <Ionicons name="chevron-forward" size={20} color={C.sub} />
-          </TouchableOpacity>
-        </View>
+        <PayScheduleBanner onOpen={() => setScheduleOpen(true)} />
+        <PeriodBar onOpenSchedule={() => setScheduleOpen(true)} />
 
         <View style={s.netCard}>
           <Text style={s.netLabel}>NET PROFIT</Text>
@@ -139,6 +136,12 @@ export function CompanyCommissionDashboard({ navigation }: Props) {
         }}
         onClose={() => setNameModalOpen(false)}
       />
+      <PayScheduleModal
+        visible={scheduleOpen}
+        initialSchedule={needsSetup ? null : schedule}
+        onClose={() => setScheduleOpen(false)}
+        onSaved={reloadSchedule}
+      />
     </View>
   );
 }
@@ -146,13 +149,6 @@ export function CompanyCommissionDashboard({ navigation }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   body: { padding: 16, paddingBottom: 120 },
-  weekNavCard: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: C.card, borderRadius: 16, padding: 12, marginBottom: 12,
-  },
-  navBtn: { padding: 4 },
-  navBtnDisabled: { opacity: 0.3 },
-  weekLabel: { fontSize: 14, fontWeight: '700', color: C.text },
   netCard: {
     backgroundColor: C.card, borderRadius: 24, padding: 24,
     alignItems: 'center', marginBottom: 16,

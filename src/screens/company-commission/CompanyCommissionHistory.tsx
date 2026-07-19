@@ -9,7 +9,8 @@ import { fmt } from '../../components/SummaryCard';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { getLoadsForWeek, getAllWeekKeys, deleteLoad, deleteWeekData } from '../../storage/storage';
 import { calcCompanyCommissionSummary } from '../../utils/calculations';
-import { formatWeekDisplay } from '../../context/WeekContext';
+import { useWeek } from '../../context/WeekContext';
+import { getPeriod, formatPeriodDisplay, formatPayDate } from '../../utils/payPeriods';
 import { C } from '../../theme';
 import type { LoadEntry } from '../../types';
 
@@ -17,6 +18,7 @@ type Props = { navigation: any };
 type WeekData = { totalEarnings: number; netProfit: number; loads: LoadEntry[] };
 
 export function CompanyCommissionHistory({ navigation }: Props) {
+  const { schedule } = useWeek();
   const [weeks, setWeeks] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [weekData, setWeekData] = useState<Record<string, WeekData>>({});
@@ -102,11 +104,11 @@ export function CompanyCommissionHistory({ navigation }: Props) {
                 <Ionicons name="calendar-outline" size={18} color={C.accent} />
               </View>
               <View style={s.weekLabelBox}>
-                <Text style={s.weekLabel}>{formatWeekDisplay(wk)}</Text>
+                <Text style={s.weekLabel}>{formatPeriodDisplay(getPeriod(wk, schedule))}</Text>
                 <Text style={s.weekSub}>
                   {expanded === wk && weekData[wk]
-                    ? `${weekData[wk].loads.length} load${weekData[wk].loads.length !== 1 ? 's' : ''}`
-                    : 'Tap to expand'}
+                    ? `${weekData[wk].loads.length} load${weekData[wk].loads.length !== 1 ? 's' : ''} · pay day ${formatPayDate(getPeriod(wk, schedule))}`
+                    : `Pay day ${formatPayDate(getPeriod(wk, schedule))}`}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => handleDeleteWeek(wk)} style={s.deleteWeekBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
