@@ -9,6 +9,7 @@ import {
   periodCalcOpts,
   formatPeriodDisplay,
   formatPayDate,
+  todayKey,
 } from '../src/utils/payPeriods';
 import type { PaySchedule } from '../src/types';
 
@@ -24,6 +25,23 @@ const addDaysIso = (key: string, n: number) => {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
+
+describe('todayKey', () => {
+  it('formats the device-local date as YYYY-MM-DD', () => {
+    // Noon local avoids any UTC/local ambiguity in the expectation.
+    expect(todayKey(new Date(2026, 6, 19, 12, 0, 0))).toBe('2026-07-19');
+  });
+
+  it('pads single-digit month and day', () => {
+    expect(todayKey(new Date(2027, 0, 5, 12, 0, 0))).toBe('2027-01-05');
+  });
+
+  it('uses the local calendar day, not the UTC one', () => {
+    // 23:30 local on Jan 5: in any timezone west of UTC this is already
+    // Jan 6 UTC, but the key must still say Jan 5.
+    expect(todayKey(new Date(2027, 0, 5, 23, 30, 0))).toBe('2027-01-05');
+  });
+});
 
 describe('defaultSchedule', () => {
   it('is weekly, payDay Friday, starting on the current week Monday', () => {

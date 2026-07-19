@@ -28,6 +28,14 @@ function lastDayOfMonth(year: number, monthIndex: number): number {
   return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
 }
 
+/** Today on the device clock as a YYYY-MM-DD key (local time, not UTC). */
+export function todayKey(now: Date = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 /** Default for existing users and anyone who skips setup: weekly, paid Friday. */
 export function defaultSchedule(today: Date = new Date()): PaySchedule {
   return { startDate: getWeekKey(today), frequency: 'weekly', payDay: 5 };

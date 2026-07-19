@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../theme';
 import { saveSchedule } from '../storage/storage';
 import {
-  defaultSchedule, firstPeriod, formatPeriodDisplay, formatPayDate,
+  defaultSchedule, firstPeriod, formatPeriodDisplay, formatPayDate, todayKey,
 } from '../utils/payPeriods';
 import type { PaySchedule, PayFrequency } from '../types';
 
@@ -52,9 +52,15 @@ type CalendarModalProps = {
 function CalendarModal({ visible, value, onSelect, onClose }: CalendarModalProps) {
   const insets = useSafeAreaInsets();
   const [monthStart, setMonthStart] = useState(value.slice(0, 8) + '01');
+  // Read the clock when the sheet opens (not per render) so the floor is
+  // stable while it's on screen but fresh if the app stays open past midnight.
+  const [minKey, setMinKey] = useState(() => todayKey());
 
   useEffect(() => {
-    if (visible) setMonthStart(value.slice(0, 8) + '01');
+    if (visible) {
+      setMinKey(todayKey());
+      setMonthStart(value.slice(0, 8) + '01');
+    }
   }, [visible, value]);
 
   const first = toUTC(monthStart);
@@ -75,6 +81,8 @@ function CalendarModal({ visible, value, onSelect, onClose }: CalendarModalProps
   }
 
   const keyFor = (day: number) => iso(new Date(Date.UTC(year, month, day)));
+  // ISO keys compare correctly as strings: block months before the current one.
+  const canGoBack = monthStart > minKey.slice(0, 8) + '01';
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -87,8 +95,12 @@ function CalendarModal({ visible, value, onSelect, onClose }: CalendarModalProps
             </TouchableOpacity>
           </View>
           <View style={s.calNav}>
-            <TouchableOpacity onPress={() => shiftMonth(-1)} style={s.calNavBtn}>
-              <Ionicons name="chevron-back" size={18} color={C.sub} />
+            <TouchableOpacity
+              onPress={() => shiftMonth(-1)}
+              style={s.calNavBtn}
+              disabled={!canGoBack}
+            >
+              <Ionicons name="chevron-back" size={18} color={canGoBack ? C.sub : C.muted} />
             </TouchableOpacity>
             <Text style={s.calMonth}>{MONTH_NAMES[month]} {year}</Text>
             <TouchableOpacity onPress={() => shiftMonth(1)} style={s.calNavBtn}>
@@ -99,24 +111,32 @@ function CalendarModal({ visible, value, onSelect, onClose }: CalendarModalProps
             {WEEKDAYS.map((w) => (
               <Text key={w.day} style={s.calDow}>{w.label[0]}</Text>
             ))}
-            {cells.map((day, i) =>
-              day === null ? (
-                <View key={i} style={s.calCell} />
-              ) : (
+            {cells.map((day, i) => {
+              if (day === null) return <View key={i} style={s.calCell} />;
+              const k = keyFor(day);
+              const past = k < minKey;
+              return (
                 <TouchableOpacity
                   key={i}
                   style={s.calCell}
-                  onPress={() => { onSelect(keyFor(day)); onClose(); }}
+                  onPress={() => { onSelect(k); onClose(); }}
                   activeOpacity={0.7}
+                  disabled={past}
                 >
-                  <View style={[s.calCellInner, keyFor(day) === value && s.calCellActive]}>
-                    <Text style={[s.calCellText, keyFor(day) === value && s.calCellTextActive]}>
+                  <View style={[s.calCellInner, k === value && s.calCellActive]}>
+                    <Text
+                      style={[
+                        s.calCellText,
+                        past && s.calCellTextPast,
+                        k === value && s.calCellTextActive,
+                      ]}
+                    >
                       {day}
                     </Text>
                   </View>
                 </TouchableOpacity>
-              )
-            )}
+              );
+            })}
           </View>
         </View>
       </View>
@@ -359,5 +379,6 @@ const s = StyleSheet.create({
   },
   calCellActive: { backgroundColor: C.accent },
   calCellText: { fontSize: 14, color: C.text, fontWeight: '600' },
+  calCellTextPast: { color: C.muted },
   calCellTextActive: { color: C.accentText, fontWeight: '800' },
 });
