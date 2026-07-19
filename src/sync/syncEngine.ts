@@ -114,6 +114,25 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
       if (err) throw new Error(err.message);
       return;
     }
+    case 'upsertPayment': {
+      const p = op.payload;
+      const { error } = await supabase.from('period_payments').upsert({
+        user_id: userId,
+        driver_type: p.driverType,
+        period_key: p.periodKey,
+        paid_at: p.paidAt,
+      });
+      if (error) throw new Error(error.message);
+      return;
+    }
+    case 'deletePayment': {
+      const { error } = await supabase.from('period_payments').delete()
+        .eq('user_id', userId)
+        .eq('driver_type', op.payload.driverType)
+        .eq('period_key', op.payload.periodKey);
+      if (error) throw new Error(error.message);
+      return;
+    }
     case 'upsertProfile': {
       const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (op.payload.name !== undefined) update.name = op.payload.name;

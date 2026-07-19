@@ -11,6 +11,10 @@ import {
   getSchedule,
   getLastUserId,
   setLastUserId,
+  markPeriodPaid,
+  unmarkPeriodPaid,
+  isPeriodPaid,
+  getPaidPeriodKeys,
   wipeAll,
 } from '../src/storage/storage';
 import type { LoadEntry, WeeklyExpenses } from '../src/types';
@@ -185,6 +189,42 @@ describe('pay schedule storage', () => {
     await saveScheduleLocal(schedule);
     expect(await getSchedule()).toEqual(schedule);
     expect(await AsyncStorage.getItem(SYNC_QUEUE_KEY)).toBeNull();
+  });
+});
+
+describe('period payment confirmations', () => {
+  it('mark → paid, unmark → not paid', async () => {
+    expect(await isPeriodPaid('owner-op', '2026-07-13')).toBe(false);
+    await markPeriodPaid('owner-op', '2026-07-13');
+    expect(await isPeriodPaid('owner-op', '2026-07-13')).toBe(true);
+    await unmarkPeriodPaid('owner-op', '2026-07-13');
+    expect(await isPeriodPaid('owner-op', '2026-07-13')).toBe(false);
+  });
+
+  it('getPaidPeriodKeys returns only the given driver type', async () => {
+    await markPeriodPaid('owner-op', '2026-07-13');
+    await markPeriodPaid('owner-op', '2026-07-20');
+    await markPeriodPaid('company-mile', '2026-07-13');
+    const keys = await getPaidPeriodKeys('owner-op');
+    expect(keys).toEqual(new Set(['2026-07-13', '2026-07-20']));
+  });
+
+  it('mark enqueues upsertPayment, unmark enqueues deletePayment', async () => {
+    await markPeriodPaid('lease', '2026-07-13');
+    await unmarkPeriodPaid('lease', '2026-07-13');
+    const queue = JSON.parse((await AsyncStorage.getItem(SYNC_QUEUE_KEY))!);
+    const kinds = queue.map((q: any) => q.op.kind);
+    expect(kinds).toContain('upsertPayment');
+    expect(kinds).toContain('deletePayment');
+    const up = queue.find((q: any) => q.op.kind === 'upsertPayment').op.payload;
+    expect(up).toMatchObject({ driverType: 'lease', periodKey: '2026-07-13' });
+    expect(typeof up.paidAt).toBe('string');
+  });
+
+  it('wipeAll clears paid keys', async () => {
+    await markPeriodPaid('owner-op', '2026-07-13');
+    await wipeAll();
+    expect(await isPeriodPaid('owner-op', '2026-07-13')).toBe(false);
   });
 });
 

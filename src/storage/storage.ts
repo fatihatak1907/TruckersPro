@@ -85,6 +85,32 @@ export async function deleteWeekData(driverType: string, weekKey: string): Promi
   await syncEngine.enqueue({ kind: 'deleteWeek', payload: { driverType, weekKey } });
 }
 
+// Payment confirmations: value is the ISO timestamp the user marked the period paid.
+function paidPeriodKey(driverType: string, periodKey: string) {
+  return `paid:${driverType}:${periodKey}`;
+}
+
+export async function markPeriodPaid(driverType: string, periodKey: string): Promise<void> {
+  const paidAt = new Date().toISOString();
+  await AsyncStorage.setItem(paidPeriodKey(driverType, periodKey), paidAt);
+  await syncEngine.enqueue({ kind: 'upsertPayment', payload: { driverType, periodKey, paidAt } });
+}
+
+export async function unmarkPeriodPaid(driverType: string, periodKey: string): Promise<void> {
+  await AsyncStorage.removeItem(paidPeriodKey(driverType, periodKey));
+  await syncEngine.enqueue({ kind: 'deletePayment', payload: { driverType, periodKey } });
+}
+
+export async function isPeriodPaid(driverType: string, periodKey: string): Promise<boolean> {
+  return (await AsyncStorage.getItem(paidPeriodKey(driverType, periodKey))) != null;
+}
+
+export async function getPaidPeriodKeys(driverType: string): Promise<Set<string>> {
+  const allKeys = await AsyncStorage.getAllKeys();
+  const prefix = `paid:${driverType}:`;
+  return new Set(allKeys.filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length)));
+}
+
 export const PROFILE_NAME_KEY = 'profile:name';
 export const PROFILE_DRIVER_TYPE_KEY = 'profile:driver_type';
 
@@ -155,6 +181,7 @@ export async function wipeAll(): Promise<void> {
     k.startsWith('loads:') ||
     k.startsWith('expenses:') ||
     k.startsWith('fuel:') ||
+    k.startsWith('paid:') ||
     k.startsWith('profile:') ||
     k === SYNC_QUEUE_KEY ||
     k === SYNC_MIGRATED_KEY
@@ -163,13 +190,14 @@ export async function wipeAll(): Promise<void> {
 }
 
 export async function pullFromSupabase(userId: string): Promise<void> {
-  const [loadsRes, fuelRes, expRes, profRes] = await Promise.all([
+  const [loadsRes, fuelRes, expRes, profRes, payRes] = await Promise.all([
     supabase.from('loads').select('*').eq('user_id', userId),
     supabase.from('fuel_entries').select('*').eq('user_id', userId),
     supabase.from('weekly_expenses').select('*').eq('user_id', userId),
     supabase.from('profiles').select('*').eq('user_id', userId),
+    supabase.from('period_payments').select('*').eq('user_id', userId),
   ]);
-  const err = loadsRes.error ?? fuelRes.error ?? expRes.error ?? profRes.error;
+  const err = loadsRes.error ?? fuelRes.error ?? expRes.error ?? profRes.error ?? payRes.error;
   if (err) throw new Error(err.message);
 
   // Group loads by (driverType, weekKey)
@@ -239,6 +267,14 @@ export async function pullFromSupabase(userId: string): Promise<void> {
     await AsyncStorage.setItem(
       `expenses:${row.driver_type}:${row.week_key}`,
       JSON.stringify(expenses)
+    );
+  }
+
+  // Payment confirmations (one row per paid period)
+  for (const row of payRes.data ?? []) {
+    await AsyncStorage.setItem(
+      paidPeriodKey(row.driver_type, row.period_key),
+      row.paid_at ?? new Date().toISOString()
     );
   }
 

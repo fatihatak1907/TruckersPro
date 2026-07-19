@@ -7,7 +7,9 @@ export type SyncOp =
   | { kind: 'deleteFuel'; payload: { id: string } }
   | { kind: 'upsertExpenses'; payload: WeeklyExpenses & { driverType: string } }
   | { kind: 'deleteWeek'; payload: { driverType: string; weekKey: string } }
-  | { kind: 'upsertProfile'; payload: { name?: string; schedule?: PaySchedule } };
+  | { kind: 'upsertProfile'; payload: { name?: string; schedule?: PaySchedule } }
+  | { kind: 'upsertPayment'; payload: { driverType: string; periodKey: string; paidAt: string } }
+  | { kind: 'deletePayment'; payload: { driverType: string; periodKey: string } };
 
 export type QueuedOp = {
   id: string;

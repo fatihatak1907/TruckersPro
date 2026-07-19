@@ -5,7 +5,13 @@ import { useWeek } from '../context/WeekContext';
 import { formatPeriodDisplay, formatPayDate } from '../utils/payPeriods';
 import { C } from '../theme';
 
-export function PeriodBar({ onOpenSchedule }: { onOpenSchedule: () => void }) {
+export function PeriodBar({
+  onOpenSchedule, paid, onTogglePaid,
+}: {
+  onOpenSchedule: () => void;
+  paid: boolean;
+  onTogglePaid: () => void;
+}) {
   const { period, goToPrev, goToNext, canGoPrev, canGoNext } = useWeek();
   return (
     <View style={s.card}>
@@ -19,6 +25,21 @@ export function PeriodBar({ onOpenSchedule }: { onOpenSchedule: () => void }) {
       <View style={s.center}>
         <Text style={s.range}>{formatPeriodDisplay(period)}</Text>
         <Text style={s.payText}>Pay day {formatPayDate(period)}</Text>
+        <TouchableOpacity
+          onPress={onTogglePaid}
+          style={[s.paidChip, paid && s.paidChipOn]}
+          activeOpacity={0.8}
+          hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name={paid ? 'checkmark-circle' : 'ellipse-outline'}
+            size={13}
+            color={paid ? C.accentText : C.sub}
+          />
+          <Text style={[s.paidChipText, paid && s.paidChipTextOn]}>
+            {paid ? 'Paid' : 'Mark as paid'}
+          </Text>
+        </TouchableOpacity>
       </View>
       <TouchableOpacity onPress={onOpenSchedule} style={s.calBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Ionicons name="calendar-outline" size={16} color={C.accent} />
@@ -48,4 +69,12 @@ const s = StyleSheet.create({
     width: 30, height: 30, borderRadius: 10,
     backgroundColor: C.cardElevated, alignItems: 'center', justifyContent: 'center',
   },
+  paidChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.cardElevated, borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 4, marginTop: 6,
+  },
+  paidChipOn: { backgroundColor: C.success },
+  paidChipText: { fontSize: 11, fontWeight: '700', color: C.sub },
+  paidChipTextOn: { color: C.accentText, fontWeight: '800' },
 });

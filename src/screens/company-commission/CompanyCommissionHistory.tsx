@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { getLoadsForWeek, getAllWeekKeys, deleteLoad, deleteWeekData } from '../../storage/storage';
+import { getLoadsForWeek, getAllWeekKeys, deleteLoad, deleteWeekData, getPaidPeriodKeys } from '../../storage/storage';
 import { calcCompanyCommissionSummary } from '../../utils/calculations';
 import { useWeek } from '../../context/WeekContext';
 import { getPeriod, formatPeriodDisplay, formatPayDate } from '../../utils/payPeriods';
@@ -22,10 +22,12 @@ export function CompanyCommissionHistory({ navigation }: Props) {
   const [weeks, setWeeks] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [weekData, setWeekData] = useState<Record<string, WeekData>>({});
+  const [paidKeys, setPaidKeys] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
       getAllWeekKeys('company-commission').then(setWeeks);
+      getPaidPeriodKeys('company-commission').then(setPaidKeys);
     }, [])
   );
 
@@ -101,7 +103,11 @@ export function CompanyCommissionHistory({ navigation }: Props) {
           <View key={wk} style={s.weekCard}>
             <TouchableOpacity style={s.weekHeader} onPress={() => toggleWeek(wk)} activeOpacity={0.7}>
               <View style={s.weekIconBox}>
-                <Ionicons name="calendar-outline" size={18} color={C.accent} />
+                <Ionicons
+                  name={paidKeys.has(wk) ? 'checkmark-circle' : 'calendar-outline'}
+                  size={18}
+                  color={paidKeys.has(wk) ? C.success : C.accent}
+                />
               </View>
               <View style={s.weekLabelBox}>
                 <Text style={s.weekLabel}>{formatPeriodDisplay(getPeriod(wk, schedule))}</Text>
@@ -109,6 +115,7 @@ export function CompanyCommissionHistory({ navigation }: Props) {
                   {expanded === wk && weekData[wk]
                     ? `${weekData[wk].loads.length} load${weekData[wk].loads.length !== 1 ? 's' : ''} · pay day ${formatPayDate(getPeriod(wk, schedule))}`
                     : `Pay day ${formatPayDate(getPeriod(wk, schedule))}`}
+                  {paidKeys.has(wk) ? <Text style={s.paidNote}> · Paid</Text> : null}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => handleDeleteWeek(wk)} style={s.deleteWeekBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -190,6 +197,7 @@ const s = StyleSheet.create({
   weekLabelBox: { flex: 1 },
   weekLabel: { fontSize: 15, fontWeight: '700', color: C.text },
   weekSub: { fontSize: 12, color: C.sub, marginTop: 1 },
+  paidNote: { color: C.success, fontWeight: '700' },
   deleteWeekBtn: { padding: 6, backgroundColor: C.cardElevated, borderRadius: 8 },
   weekContent: { paddingHorizontal: 14, paddingBottom: 14 },
   summaryStrip: { flexDirection: 'row', borderRadius: 12, padding: 12, marginBottom: 10, backgroundColor: C.cardElevated },

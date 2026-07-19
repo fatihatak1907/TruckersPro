@@ -18,6 +18,7 @@ import { SignOutButton } from '../../components/SignOutButton';
 import { SyncStatusBadge } from '../../components/SyncStatusBadge';
 import type { LoadEntry } from '../../types';
 import { NameEditModal } from '../../components/NameEditModal';
+import { usePeriodPaid } from '../../hooks/usePeriodPaid';
 
 type Props = { navigation: any };
 
@@ -27,6 +28,7 @@ export function CompanyMileDashboard({ navigation }: Props) {
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [driverName, setDriverName] = useState('');
   const [nameModalOpen, setNameModalOpen] = useState(false);
+  const { paid, togglePaid } = usePeriodPaid('company-mile');
 
   useFocusEffect(
     useCallback(() => {
@@ -70,9 +72,15 @@ export function CompanyMileDashboard({ navigation }: Props) {
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
         <PayScheduleBanner onOpen={() => setScheduleOpen(true)} />
-        <PeriodBar onOpenSchedule={() => setScheduleOpen(true)} />
+        <PeriodBar onOpenSchedule={() => setScheduleOpen(true)} paid={paid} onTogglePaid={togglePaid} />
 
-        <View style={s.netCard}>
+        <View style={[s.netCard, paid && s.netCardPaid]}>
+          {paid && (
+            <View style={s.paidBadge}>
+              <Ionicons name="checkmark-circle" size={13} color={C.accentText} />
+              <Text style={s.paidBadgeText}>Paid</Text>
+            </View>
+          )}
           <Text style={s.netLabel}>NET PROFIT</Text>
           <Text style={[s.netValue, { color: summary.netProfit >= 0 ? C.success : C.danger }]}>
             {fmt(summary.netProfit)}
@@ -153,6 +161,14 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 24, padding: 24,
     alignItems: 'center', marginBottom: 16,
   },
+  netCardPaid: { borderWidth: 1.5, borderColor: C.success, backgroundColor: 'rgba(52, 199, 89, 0.08)' },
+  paidBadge: {
+    position: 'absolute', top: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.success, borderRadius: 999,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  paidBadgeText: { fontSize: 10, fontWeight: '800', color: C.accentText },
   netLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5 },
   netValue: { fontSize: 40, fontWeight: '900', marginTop: 8 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },

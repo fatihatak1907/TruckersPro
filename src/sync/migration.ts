@@ -10,6 +10,7 @@ async function hasLocalData(): Promise<boolean> {
     k.startsWith('loads:') ||
     k.startsWith('expenses:') ||
     k.startsWith('fuel:') ||
+    k.startsWith('paid:') ||
     k === 'profile:name' ||
     k === 'profile:schedule'
   );
@@ -45,6 +46,14 @@ async function enqueueAllLocal(): Promise<void> {
       await syncEngine.enqueue({
         kind: 'upsertExpenses',
         payload: { ...expenses, driverType },
+      });
+    } else if (k.startsWith('paid:')) {
+      const [, driverType, periodKey] = k.split(':');
+      const paidAt = await AsyncStorage.getItem(k);
+      if (!paidAt) continue;
+      await syncEngine.enqueue({
+        kind: 'upsertPayment',
+        payload: { driverType, periodKey, paidAt },
       });
     } else if (k === 'profile:name') {
       // Only the name key: 'profile:driver_type' must never be uploaded as a name.
