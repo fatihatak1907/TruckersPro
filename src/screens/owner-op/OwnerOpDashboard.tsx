@@ -228,7 +228,8 @@ const s = StyleSheet.create({
   tapHint: { fontSize: 11, color: C.muted, marginTop: 6, fontWeight: '600' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   statCard: {
-    flex: 1, minWidth: '30%', backgroundColor: C.card, borderRadius: 18, padding: 12,
+    // Two equal columns: 45% + gap keeps exactly 2 per row; flex fills the rest.
+    flex: 1, minWidth: '45%', backgroundColor: C.card, borderRadius: 18, padding: 12,
     alignItems: 'center',
   },
   statIcon: { marginBottom: 6 },
