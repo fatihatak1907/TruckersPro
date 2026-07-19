@@ -115,10 +115,14 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
       return;
     }
     case 'upsertProfile': {
-      const { error } = await supabase.from('profiles').update({
-        name: op.payload.name,
-        updated_at: new Date().toISOString(),
-      }).eq('user_id', userId);
+      const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (op.payload.name !== undefined) update.name = op.payload.name;
+      if (op.payload.schedule) {
+        update.schedule_start_date = op.payload.schedule.startDate;
+        update.schedule_frequency = op.payload.schedule.frequency;
+        update.schedule_pay_day = op.payload.schedule.payDay;
+      }
+      const { error } = await supabase.from('profiles').update(update).eq('user_id', userId);
       if (error) throw new Error(error.message);
       return;
     }

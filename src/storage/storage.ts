@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../types';
+import type { LoadEntry, WeeklyExpenses, FuelEntry, PaySchedule } from '../types';
 import { syncEngine } from '../sync/syncEngine';
 import { SYNC_QUEUE_KEY, SYNC_MIGRATED_KEY } from '../sync/types';
 import { supabase } from '../supabase/client';
@@ -105,6 +105,31 @@ export async function getDriverType(): Promise<string | null> {
   return await AsyncStorage.getItem(PROFILE_DRIVER_TYPE_KEY);
 }
 
+export const PROFILE_SCHEDULE_KEY = 'profile:schedule';
+export const SCHEDULE_BANNER_DISMISSED_KEY = 'profile:schedule_banner_dismissed';
+
+export async function saveScheduleLocal(schedule: PaySchedule): Promise<void> {
+  await AsyncStorage.setItem(PROFILE_SCHEDULE_KEY, JSON.stringify(schedule));
+}
+
+export async function saveSchedule(schedule: PaySchedule): Promise<void> {
+  await saveScheduleLocal(schedule);
+  await syncEngine.enqueue({ kind: 'upsertProfile', payload: { schedule } });
+}
+
+export async function getSchedule(): Promise<PaySchedule | null> {
+  const raw = await AsyncStorage.getItem(PROFILE_SCHEDULE_KEY);
+  return raw ? (JSON.parse(raw) as PaySchedule) : null;
+}
+
+export async function getScheduleBannerDismissed(): Promise<boolean> {
+  return (await AsyncStorage.getItem(SCHEDULE_BANNER_DISMISSED_KEY)) === 'true';
+}
+
+export async function setScheduleBannerDismissed(): Promise<void> {
+  await AsyncStorage.setItem(SCHEDULE_BANNER_DISMISSED_KEY, 'true');
+}
+
 export async function wipeAll(): Promise<void> {
   const all = await AsyncStorage.getAllKeys();
   const ours = all.filter((k) =>
@@ -198,9 +223,17 @@ export async function pullFromSupabase(userId: string): Promise<void> {
     );
   }
 
-  // Profiles (single row per user with driver_type + name)
+  // Profiles (single row per user with driver_type + name + pay schedule)
   for (const row of profRes.data ?? []) {
     await AsyncStorage.setItem(PROFILE_NAME_KEY, row.name ?? '');
     await AsyncStorage.setItem(PROFILE_DRIVER_TYPE_KEY, row.driver_type);
+    if (row.schedule_start_date) {
+      const schedule: PaySchedule = {
+        startDate: String(row.schedule_start_date).slice(0, 10),
+        frequency: row.schedule_frequency ?? 'weekly',
+        payDay: row.schedule_pay_day != null ? Number(row.schedule_pay_day) : 5,
+      };
+      await saveScheduleLocal(schedule);
+    }
   }
 }

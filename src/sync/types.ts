@@ -1,4 +1,4 @@
-import type { LoadEntry, FuelEntry, WeeklyExpenses } from '../types';
+import type { LoadEntry, FuelEntry, WeeklyExpenses, PaySchedule } from '../types';
 
 export type SyncOp =
   | { kind: 'upsertLoad'; payload: LoadEntry }
@@ -7,7 +7,7 @@ export type SyncOp =
   | { kind: 'deleteFuel'; payload: { id: string } }
   | { kind: 'upsertExpenses'; payload: WeeklyExpenses & { driverType: string } }
   | { kind: 'deleteWeek'; payload: { driverType: string; weekKey: string } }
-  | { kind: 'upsertProfile'; payload: { name: string } };
+  | { kind: 'upsertProfile'; payload: { name?: string; schedule?: PaySchedule } };
 
 export type QueuedOp = {
   id: string;
