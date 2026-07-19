@@ -119,7 +119,12 @@ export async function saveSchedule(schedule: PaySchedule): Promise<void> {
 
 export async function getSchedule(): Promise<PaySchedule | null> {
   const raw = await AsyncStorage.getItem(PROFILE_SCHEDULE_KEY);
-  return raw ? (JSON.parse(raw) as PaySchedule) : null;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PaySchedule;
+  } catch {
+    return null;
+  }
 }
 
 export async function getScheduleBannerDismissed(): Promise<boolean> {
