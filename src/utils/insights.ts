@@ -107,9 +107,11 @@ function expenseRows(w: WeekData, opts?: CalcOpts): InsightRow[] {
             ? 'per period'
             : i.freq === 'monthly'
               ? 'monthly ÷ 4.33'
-              : i.freq === 'daily'
-                ? 'daily × 7'
-                : '';
+              : i.freq === 'biweekly'
+                ? 'bi-weekly ÷ 2'
+                : i.freq === 'daily'
+                  ? 'daily × 7'
+                  : '';
       const sub = [pct, freqNote].filter(Boolean).join(' · ');
       return { label: i.label, value: fmt(i.converted), ...(sub ? { sub } : {}) };
     });

@@ -89,8 +89,8 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
         <FreqToggle
           value={freq}
           onChange={setFreq}
-          options={['once', 'daily', 'weekly', 'monthly'] as const}
-          labels={{ once: '1x', daily: 'D', weekly: 'W', monthly: 'M' }}
+          options={['once', 'daily', 'weekly', 'biweekly', 'monthly'] as const}
+          labels={{ once: '1x', daily: 'D', weekly: 'W', biweekly: '2W', monthly: 'M' }}
         />
         <TouchableOpacity style={s.cancelBtn} onPress={onCancel}>
           <Ionicons name="close" size={18} color={C.sub} />
@@ -198,7 +198,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
                 <Text style={s.lockedValue}>{fmt(o.amount)}</Text>
                 <View style={s.freqBadge}>
                   <Text style={s.freqBadgeText}>
-                    {o.frequency === 'monthly' ? 'M' : o.frequency === 'daily' ? 'D' : o.frequency === 'once' ? '1x' : 'W'}
+                    {o.frequency === 'monthly' ? 'M' : o.frequency === 'biweekly' ? '2W' : o.frequency === 'daily' ? 'D' : o.frequency === 'once' ? '1x' : 'W'}
                   </Text>
                 </View>
                 <View style={s.lockedActions}>

@@ -14,6 +14,8 @@ export function toPeriod(
       return amount;
     case 'daily':
       return amount * period.days;
+    case 'biweekly':
+      return amount * (period.days / 14);
     case 'monthly':
       return period.isMonth ? amount : (amount * (period.days / 7)) / 4.33;
     default: // 'weekly' or undefined

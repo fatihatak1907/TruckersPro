@@ -77,7 +77,9 @@ export function ConfirmedAmountField({
           </Text>
           {showFreq && (
             <View style={s.freqBadge}>
-              <Text style={s.freqBadgeText}>{frequency === 'monthly' ? 'M' : 'W'}</Text>
+              <Text style={s.freqBadgeText}>
+                {frequency === 'monthly' ? 'M' : frequency === 'biweekly' ? '2W' : 'W'}
+              </Text>
             </View>
           )}
           <View style={s.lockedActions}>
@@ -111,8 +113,8 @@ export function ConfirmedAmountField({
           <FreqToggle
             value={draftFreq}
             onChange={setDraftFreq}
-            options={['weekly', 'monthly'] as const}
-            labels={{ weekly: 'W', monthly: 'M' }}
+            options={['weekly', 'biweekly', 'monthly'] as const}
+            labels={{ weekly: 'W', biweekly: '2W', monthly: 'M' }}
           />
         )}
         {editing && amount > 0 && (

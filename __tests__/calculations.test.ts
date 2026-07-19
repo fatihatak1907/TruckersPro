@@ -211,6 +211,12 @@ describe('toPeriod', () => {
     expect(toPeriod(100, undefined, bi)).toBe(200); // undefined behaves as weekly
   });
 
+  it('biweekly → amount × (period.days / 14)', () => {
+    expect(toPeriod(500, 'biweekly', wk)).toBe(250);
+    expect(toPeriod(500, 'biweekly', bi)).toBe(500);
+    expect(toPeriod(500, 'biweekly', mo31)).toBeCloseTo(500 * (31 / 14), 5);
+  });
+
   it('monthly → passthrough for true months, ×(days/7)/4.33 otherwise', () => {
     expect(toPeriod(866, 'monthly', mo31)).toBe(866);
     expect(toPeriod(866, 'monthly', wk)).toBeCloseTo(200, 5); // 866 / 4.33

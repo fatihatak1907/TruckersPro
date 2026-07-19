@@ -23,9 +23,9 @@ export type FuelEntry = {
   createdAt: string;
 };
 
-export type Frequency = 'weekly' | 'monthly';
+export type Frequency = 'weekly' | 'biweekly' | 'monthly';
 
-export type OtherFrequency = 'once' | 'daily' | 'weekly' | 'monthly';
+export type OtherFrequency = 'once' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
 
 export type OtherExpense = {
   id: string;
