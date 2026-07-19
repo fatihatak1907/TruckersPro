@@ -138,7 +138,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
                 ]
               : []),
           ] as { label: string; value: string; icon: string; kind: InsightKind }[]).map((item) => (
-            <TouchableOpacity key={item.label} style={s.statCard} onPress={() => setOpenInsight(item.kind)} activeOpacity={0.8}>
+            <TouchableOpacity key={item.label} style={[s.statCard, !mileageOn && s.statCardWide]} onPress={() => setOpenInsight(item.kind)} activeOpacity={0.8}>
               <Ionicons name={item.icon as any} size={18} color={C.accent} style={s.statIcon} />
               <Text style={s.statValue}>{item.value}</Text>
               <Text style={s.statLabel}>{item.label}</Text>
@@ -228,10 +228,11 @@ const s = StyleSheet.create({
   tapHint: { fontSize: 11, color: C.muted, marginTop: 6, fontWeight: '600' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   statCard: {
-    // Two equal columns: 45% + gap keeps exactly 2 per row; flex fills the rest.
-    flex: 1, minWidth: '45%', backgroundColor: C.card, borderRadius: 18, padding: 12,
+    flex: 1, minWidth: '30%', backgroundColor: C.card, borderRadius: 18, padding: 12,
     alignItems: 'center',
   },
+  // Owner-op only (4 cards): 45% + gap forces exactly 2 equal cards per row.
+  statCardWide: { minWidth: '45%' },
   statIcon: { marginBottom: 6 },
   statValue: { fontSize: 15, fontWeight: '800', color: C.text },
   statLabel: { fontSize: 11, color: C.sub, marginTop: 2, fontWeight: '600' },
