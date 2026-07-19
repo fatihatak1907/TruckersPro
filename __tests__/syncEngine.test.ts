@@ -252,3 +252,44 @@ test('flush is a no-op when no user is signed in', async () => {
   const queue = JSON.parse((await AsyncStorage.getItem(SYNC_QUEUE_KEY))!);
   expect(queue).toHaveLength(1);
 });
+
+test('flush maps upsertProfile schedule payload to the three profile columns', async () => {
+  const eqMock = jest.fn(() => Promise.resolve({ error: null }));
+  const updateMock = jest.fn((_arg: any) => ({ eq: eqMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(() => ({ update: updateMock }));
+  supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+  await syncEngine.enqueue({
+    kind: 'upsertProfile',
+    payload: { schedule: { startDate: '2026-07-15', frequency: 'biweekly', payDay: 5 } },
+  });
+  await syncEngine.flush();
+
+  expect(supabase.from).toHaveBeenCalledWith('profiles');
+  expect(updateMock).toHaveBeenCalledTimes(1);
+  expect(updateMock.mock.calls[0][0]).toMatchObject({
+    schedule_start_date: '2026-07-15',
+    schedule_frequency: 'biweekly',
+    schedule_pay_day: 5,
+  });
+  expect(updateMock.mock.calls[0][0].name).toBeUndefined();
+  expect(eqMock).toHaveBeenCalledWith('user_id', 'user-1');
+});
+
+test('flush of a name-only upsertProfile does not touch schedule columns', async () => {
+  const eqMock = jest.fn(() => Promise.resolve({ error: null }));
+  const updateMock = jest.fn((_arg: any) => ({ eq: eqMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(() => ({ update: updateMock }));
+  supabase.auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+
+  await syncEngine.enqueue({ kind: 'upsertProfile', payload: { name: 'Fatih' } });
+  await syncEngine.flush();
+
+  const row = updateMock.mock.calls[0][0];
+  expect(row.name).toBe('Fatih');
+  expect(row.schedule_start_date).toBeUndefined();
+  expect(row.schedule_frequency).toBeUndefined();
+  expect(row.schedule_pay_day).toBeUndefined();
+});

@@ -90,3 +90,68 @@ test('pullFromSupabase writes both driver_type and name from profile row', async
   expect(await AsyncStorage.getItem('profile:name')).toBe('Test Driver');
   expect(await AsyncStorage.getItem('profile:driver_type')).toBe('lease');
 });
+
+test('Path A uploads a locally stored pay schedule', async () => {
+  await AsyncStorage.setItem(
+    'profile:schedule',
+    JSON.stringify({ startDate: '2026-07-15', frequency: 'biweekly', payDay: 5 })
+  );
+  const eqMock = jest.fn(() => Promise.resolve({ error: null }));
+  const updateMock = jest.fn((_arg: any) => ({ eq: eqMock }));
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation(() => ({
+    upsert: upsertMock,
+    update: updateMock,
+    ...selectChain([]),
+  }));
+
+  const { runMigrationAndPull } = require('../src/sync/migration');
+  await runMigrationAndPull('user-1');
+
+  expect(updateMock).toHaveBeenCalled();
+  expect(updateMock.mock.calls[0][0]).toMatchObject({
+    schedule_start_date: '2026-07-15',
+    schedule_frequency: 'biweekly',
+    schedule_pay_day: 5,
+  });
+});
+
+test('pullFromSupabase maps schedule columns into profile:schedule', async () => {
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation((table: string) => {
+    if (table === 'profiles') {
+      return selectChain([{
+        user_id: 'user-1', driver_type: 'owner-op', name: 'D',
+        schedule_start_date: '2026-07-15', schedule_frequency: 'biweekly', schedule_pay_day: 3,
+      }]);
+    }
+    return selectChain([]);
+  });
+
+  const { pullFromSupabase } = require('../src/storage/storage');
+  await pullFromSupabase('user-1');
+
+  expect(JSON.parse((await AsyncStorage.getItem('profile:schedule'))!)).toEqual({
+    startDate: '2026-07-15',
+    frequency: 'biweekly',
+    payDay: 3,
+  });
+});
+
+test('pullFromSupabase leaves profile:schedule unset when schedule_start_date is null', async () => {
+  const { supabase } = require('../src/supabase/client');
+  supabase.from.mockImplementation((table: string) => {
+    if (table === 'profiles') {
+      return selectChain([{
+        user_id: 'user-1', driver_type: 'owner-op', name: 'D',
+        schedule_start_date: null, schedule_frequency: 'weekly', schedule_pay_day: 5,
+      }]);
+    }
+    return selectChain([]);
+  });
+
+  const { pullFromSupabase } = require('../src/storage/storage');
+  await pullFromSupabase('user-1');
+
+  expect(await AsyncStorage.getItem('profile:schedule')).toBeNull();
+});

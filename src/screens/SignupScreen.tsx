@@ -7,7 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../supabase/client';
 import { DriverTypeGrid, DriverTypeChoice } from '../components/DriverTypeGrid';
-import { saveDriverType } from '../storage/storage';
+import { saveDriverType, saveScheduleLocal } from '../storage/storage';
+import { PayScheduleForm } from './PayScheduleScreen';
+import { defaultSchedule } from '../utils/payPeriods';
+import type { PaySchedule } from '../types';
 import { C } from '../theme';
 
 type Props = { navigation: any };
@@ -20,6 +23,8 @@ export function SignupScreen({ navigation }: Props) {
   const [confirm, setConfirm] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [driverType, setDriverType] = useState<DriverTypeChoice | null>(null);
+  const [schedule, setSchedule] = useState<PaySchedule>(() => defaultSchedule());
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState(false);
@@ -40,7 +45,15 @@ export function SignupScreen({ navigation }: Props) {
     const { data, error: signErr } = await supabase.auth.signUp({
       email: trimmed,
       password,
-      options: { data: { driver_type: driverType, name: name.trim() } },
+      options: {
+        data: {
+          driver_type: driverType,
+          name: name.trim(),
+          schedule_start_date: schedule.startDate,
+          schedule_frequency: schedule.frequency,
+          schedule_pay_day: schedule.payDay,
+        },
+      },
     });
     if (signErr || !data.user) {
       setSubmitting(false);
@@ -71,6 +84,9 @@ export function SignupScreen({ navigation }: Props) {
       user_id: data.user.id,
       driver_type: driverType,
       name: name.trim(),
+      schedule_start_date: schedule.startDate,
+      schedule_frequency: schedule.frequency,
+      schedule_pay_day: schedule.payDay,
     });
     if (profErr) {
       setSubmitting(false);
@@ -79,6 +95,7 @@ export function SignupScreen({ navigation }: Props) {
     }
 
     await saveDriverType(driverType);
+    await saveScheduleLocal(schedule);
     setSubmitting(false);
   }
 
@@ -217,6 +234,22 @@ export function SignupScreen({ navigation }: Props) {
             <Text style={[s.label, { marginTop: 16 }]}>I AM A...</Text>
             <DriverTypeGrid selected={driverType} onSelect={setDriverType} />
 
+            <TouchableOpacity
+              style={s.scheduleToggle}
+              onPress={() => setScheduleOpen((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="calendar-outline" size={18} color={C.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.scheduleToggleTitle}>Pay schedule</Text>
+                <Text style={s.scheduleToggleSub}>
+                  {schedule.frequency === 'weekly' ? 'Weekly' : schedule.frequency === 'biweekly' ? 'Bi-weekly' : 'Monthly'} — tap to customize (optional)
+                </Text>
+              </View>
+              <Ionicons name={scheduleOpen ? 'chevron-up' : 'chevron-down'} size={18} color={C.sub} />
+            </TouchableOpacity>
+            {scheduleOpen && <PayScheduleForm value={schedule} onChange={setSchedule} />}
+
             {error ? <Text style={s.error}>{error}</Text> : null}
 
             <TouchableOpacity
@@ -274,4 +307,10 @@ const s = StyleSheet.create({
   linkBtn: { alignItems: 'center', marginTop: 16 },
   linkText: { color: C.sub, fontSize: 14 },
   linkAccent: { color: C.accent, fontWeight: '700' },
+  scheduleToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card, borderRadius: 16, padding: 14, marginTop: 8,
+  },
+  scheduleToggleTitle: { fontSize: 14, fontWeight: '800', color: C.text },
+  scheduleToggleSub: { fontSize: 12, color: C.sub, marginTop: 1 },
 });

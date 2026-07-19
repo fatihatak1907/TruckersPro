@@ -6,6 +6,9 @@ import {
   saveWeeklyExpenses,
   getWeeklyExpenses,
   getAllWeekKeys,
+  saveSchedule,
+  saveScheduleLocal,
+  getSchedule,
 } from '../src/storage/storage';
 import type { LoadEntry, WeeklyExpenses } from '../src/types';
 
@@ -156,5 +159,28 @@ describe('profile API v2 (no driverType arg)', () => {
     const { getDriverType } = require('../src/storage/storage');
     const got = await getDriverType();
     expect(got).toBeNull();
+  });
+});
+
+describe('pay schedule storage', () => {
+  const schedule = { startDate: '2026-07-15', frequency: 'biweekly' as const, payDay: 5 };
+
+  it('getSchedule returns null when nothing stored', async () => {
+    expect(await getSchedule()).toBeNull();
+  });
+
+  it('saveSchedule persists locally and enqueues an upsertProfile op with the schedule', async () => {
+    await saveSchedule(schedule);
+    expect(await getSchedule()).toEqual(schedule);
+    const queue = JSON.parse((await AsyncStorage.getItem(SYNC_QUEUE_KEY))!);
+    const op = queue[queue.length - 1].op;
+    expect(op.kind).toBe('upsertProfile');
+    expect(op.payload.schedule).toEqual(schedule);
+  });
+
+  it('saveScheduleLocal writes locally without enqueueing', async () => {
+    await saveScheduleLocal(schedule);
+    expect(await getSchedule()).toEqual(schedule);
+    expect(await AsyncStorage.getItem(SYNC_QUEUE_KEY)).toBeNull();
   });
 });

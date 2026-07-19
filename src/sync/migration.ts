@@ -10,7 +10,8 @@ async function hasLocalData(): Promise<boolean> {
     k.startsWith('loads:') ||
     k.startsWith('expenses:') ||
     k.startsWith('fuel:') ||
-    k === 'profile:name'
+    k === 'profile:name' ||
+    k === 'profile:schedule'
   );
 }
 
@@ -52,6 +53,13 @@ async function enqueueAllLocal(): Promise<void> {
       await syncEngine.enqueue({
         kind: 'upsertProfile',
         payload: { name },
+      });
+    } else if (k === 'profile:schedule') {
+      const raw = await AsyncStorage.getItem(k);
+      if (!raw) continue;
+      await syncEngine.enqueue({
+        kind: 'upsertProfile',
+        payload: { schedule: JSON.parse(raw) },
       });
     }
   }

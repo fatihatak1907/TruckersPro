@@ -10,7 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ConfirmedAmountField, FreqToggle } from '../../components/ConfirmedAmountField';
 import { saveWeeklyExpenses, getWeeklyExpenses } from '../../storage/storage';
-import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
+import { useWeek } from '../../context/WeekContext';
+import { formatPeriodDisplay } from '../../utils/payPeriods';
 import { fmt } from '../../utils/format';
 import { C } from '../../theme';
 import type { WeeklyExpenses, Frequency, OtherExpense, OtherFrequency } from '../../types';
@@ -109,7 +110,7 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
 export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
   const driverType: string = route?.params?.driverType ?? 'owner-op';
   const isOwnerOp = driverType === 'owner-op';
-  const { weekKey } = useWeek();
+  const { weekKey, period } = useWeek();
   const [exp, setExp] = useState<WeeklyExpenses>({ ...EMPTY, weekKey });
   const [addingOther, setAddingOther] = useState(false);
   const [editingOtherId, setEditingOtherId] = useState<string | null>(null);
@@ -161,7 +162,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" />
-      <ScreenHeader title="Expenses" subtitle={formatWeekDisplay(weekKey)} />
+      <ScreenHeader title="Expenses" subtitle={formatPeriodDisplay(period)} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView

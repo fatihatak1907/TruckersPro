@@ -12,14 +12,15 @@ import { StatePicker } from '../../components/StatePicker';
 import { ConfirmedAmountField } from '../../components/ConfirmedAmountField';
 import { splitCityState, joinCityState } from '../../utils/usStates';
 import { saveLoad } from '../../storage/storage';
-import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
+import { useWeek } from '../../context/WeekContext';
+import { formatPeriodDisplay } from '../../utils/payPeriods';
 import { C } from '../../theme';
 import type { LoadEntry } from '../../types';
 
 type Props = { navigation: any; route: any };
 
 export function CompanyMileAddLoad({ navigation, route }: Props) {
-  const { weekKey } = useWeek();
+  const { weekKey, period } = useWeek();
   const editLoad: LoadEntry | undefined = route.params?.load;
 
   const [startCity, setStartCity] = useState('');
@@ -87,7 +88,7 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
       <StatusBar barStyle="light-content" />
       <ScreenHeader
         title={editLoad ? 'Edit Load' : 'Add Load'}
-        subtitle={formatWeekDisplay(weekKey)}
+        subtitle={formatPeriodDisplay(period)}
         left={
           <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="chevron-back" size={24} color={C.text} />

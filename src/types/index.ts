@@ -78,3 +78,18 @@ export type CompanyCommissionWeeklySummary = {
   totalEarnings: number;
   netProfit: number;
 };
+
+export type PayFrequency = 'weekly' | 'biweekly' | 'monthly';
+
+export type PaySchedule = {
+  startDate: string; // YYYY-MM-DD, any date
+  frequency: PayFrequency;
+  payDay: number; // weekly/biweekly: 1=Mon … 7=Sun; monthly: 1–28, or 31 = last day of month
+};
+
+export type PayPeriod = {
+  key: string; // YYYY-MM-DD of the period start
+  start: string;
+  end: string; // inclusive
+  payDate: string;
+};

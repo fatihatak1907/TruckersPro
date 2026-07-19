@@ -8,16 +8,19 @@ import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
 import { getLoadsForWeek, getWeeklyExpenses, deleteLoad, getFuelEntriesForWeek, saveProfileName, getProfileName } from '../../storage/storage';
 import { calcOwnerOpSummary } from '../../utils/calculations';
-import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
+import { useWeek } from '../../context/WeekContext';
 import { C } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SignOutButton } from '../../components/SignOutButton';
 import { SyncStatusBadge } from '../../components/SyncStatusBadge';
 import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../../types';
-import { addWeeks } from '../../utils/weekKey';
+import { addPeriods, periodCalcOpts } from '../../utils/payPeriods';
 import { buildInsight, InsightKind, WeekData } from '../../utils/insights';
 import { InsightsSheet } from '../../components/InsightsSheet';
 import { NameEditModal } from '../../components/NameEditModal';
+import { PeriodBar } from '../../components/PeriodBar';
+import { PayScheduleBanner } from '../../components/PayScheduleBanner';
+import { PayScheduleModal } from '../PayScheduleScreen';
 
 const EMPTY_EXPENSES: WeeklyExpenses = {
   weekKey: '',
@@ -35,7 +38,8 @@ type Props = { navigation: any; route: any };
 
 export function OwnerOpDashboard({ navigation, route }: Props) {
   const driverType: string = route.params?.driverType ?? 'owner-op';
-  const { weekKey, goToPrev, goToNext, canGoPrev, canGoNext } = useWeek();
+  const { weekKey, period, schedule, needsSetup, reloadSchedule } = useWeek();
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [expenses, setExpenses] = useState<WeeklyExpenses>({ ...EMPTY_EXPENSES, weekKey });
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([]);
@@ -46,7 +50,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      const prevKey = addWeeks(weekKey, -1);
+      const prevKey = addPeriods(weekKey, -1, schedule);
       Promise.all([
         getLoadsForWeek(driverType, weekKey),
         getWeeklyExpenses(driverType, weekKey),
@@ -66,11 +70,12 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
           fuelEntries: pf,
         });
       });
-    }, [weekKey])
+    }, [weekKey, schedule])
   );
 
   const mileageOn = driverType !== 'owner-op';
-  const summary = calcOwnerOpSummary(loads, expenses, fuelEntries, { mileage: mileageOn });
+  const calcPeriod = periodCalcOpts(period, schedule);
+  const summary = calcOwnerOpSummary(loads, expenses, fuelEntries, { mileage: mileageOn, period: calcPeriod });
   const title = driverType === 'lease' ? 'Lease Driver' : 'Owner Operator';
 
   function handleEditName() {
@@ -107,15 +112,8 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
       />
 
       <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
-        <View style={s.weekNavCard}>
-          <TouchableOpacity onPress={goToPrev} disabled={!canGoPrev} style={[s.navBtn, !canGoPrev && s.navBtnDisabled]}>
-            <Ionicons name="chevron-back" size={20} color={C.sub} />
-          </TouchableOpacity>
-          <Text style={s.weekLabel}>{formatWeekDisplay(weekKey)}</Text>
-          <TouchableOpacity onPress={goToNext} disabled={!canGoNext} style={[s.navBtn, !canGoNext && s.navBtnDisabled]}>
-            <Ionicons name="chevron-forward" size={20} color={C.sub} />
-          </TouchableOpacity>
-        </View>
+        <PayScheduleBanner onOpen={() => setScheduleOpen(true)} />
+        <PeriodBar onOpenSchedule={() => setScheduleOpen(true)} />
 
         <TouchableOpacity style={s.netCard} onPress={() => setOpenInsight('net')} activeOpacity={0.8}>
           <Text style={s.netLabel}>NET PROFIT</Text>
@@ -191,10 +189,16 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
       <InsightsSheet
         insight={
           openInsight
-            ? buildInsight(openInsight, { loads, expenses, fuelEntries }, prevWeek, { mileage: mileageOn })
+            ? buildInsight(openInsight, { loads, expenses, fuelEntries }, prevWeek, { mileage: mileageOn, period: calcPeriod })
             : null
         }
         onClose={() => setOpenInsight(null)}
+      />
+      <PayScheduleModal
+        visible={scheduleOpen}
+        initialSchedule={needsSetup ? null : schedule}
+        onClose={() => setScheduleOpen(false)}
+        onSaved={reloadSchedule}
       />
       <NameEditModal
         visible={nameModalOpen}
@@ -212,13 +216,6 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   body: { padding: 16, paddingBottom: 120 },
-  weekNavCard: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: C.card, borderRadius: 16, padding: 12, marginBottom: 12,
-  },
-  navBtn: { padding: 4 },
-  navBtnDisabled: { opacity: 0.3 },
-  weekLabel: { fontSize: 14, fontWeight: '700', color: C.text },
   netCard: {
     backgroundColor: C.card, borderRadius: 24, padding: 24,
     alignItems: 'center', marginBottom: 16,

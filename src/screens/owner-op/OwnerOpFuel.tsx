@@ -9,14 +9,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { saveFuelEntry, getFuelEntriesForWeek, deleteFuelEntry } from '../../storage/storage';
-import { useWeek, formatWeekDisplay } from '../../context/WeekContext';
+import { useWeek } from '../../context/WeekContext';
+import { formatPeriodDisplay } from '../../utils/payPeriods';
 import { fmt } from '../../components/SummaryCard';
 import { C } from '../../theme';
 import type { FuelEntry } from '../../types';
 
 export function OwnerOpFuel({ route }: { route: any }) {
   const driverType: string = route?.params?.driverType ?? 'owner-op';
-  const { weekKey } = useWeek();
+  const { weekKey, period } = useWeek();
   const [entries, setEntries] = useState<FuelEntry[]>([]);
   const [fuelType, setFuelType] = useState<'diesel' | 'def'>('diesel');
   const [cost, setCost] = useState('');
@@ -68,7 +69,7 @@ export function OwnerOpFuel({ route }: { route: any }) {
       <StatusBar barStyle="light-content" />
       <ScreenHeader
         title="Fuel"
-        subtitle={formatWeekDisplay(weekKey)}
+        subtitle={formatPeriodDisplay(period)}
       />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
