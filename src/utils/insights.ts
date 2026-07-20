@@ -36,7 +36,7 @@ const TITLES: Record<InsightKind, string> = {
   deduction: 'Mileage Deduction',
 };
 
-type CalcOpts = { mileage?: boolean; period?: CalcPeriod };
+type CalcOpts = { mileage?: boolean; period?: CalcPeriod; lease?: boolean };
 
 function metric(kind: InsightKind, w: WeekData, opts?: CalcOpts): number {
   const s = calcOwnerOpSummary(w.loads, w.expenses, w.fuelEntries, opts);
@@ -82,8 +82,10 @@ function expenseRows(w: WeekData, opts?: CalcOpts): InsightRow[] {
 
   const items: { label: string; converted: number; freq: Frequency | OtherFrequency; actual?: boolean }[] = [
     { label: 'Truck payment', converted: toPeriod(e.truckPayment, e.truckPaymentFrequency, period), freq: e.truckPaymentFrequency },
+    // Lease drivers have a single "Insurance" field (stored in the trailer-insurance
+    // slot); a legacy truck-insurance amount still shows so totals stay explainable.
     { label: 'Truck insurance', converted: toPeriod(e.truckInsurance, e.truckInsuranceFrequency, period), freq: e.truckInsuranceFrequency },
-    { label: 'Trailer insurance', converted: toPeriod(e.trailerInsurance, e.trailerInsuranceFrequency, period), freq: e.trailerInsuranceFrequency },
+    { label: opts?.lease ? 'Insurance' : 'Trailer insurance', converted: toPeriod(e.trailerInsurance, e.trailerInsuranceFrequency, period), freq: e.trailerInsuranceFrequency },
     { label: 'Trailer lease', converted: toPeriod(e.trailerLease, e.trailerLeaseFrequency, period), freq: e.trailerLeaseFrequency },
     { label: 'IFTA', converted: toPeriod(e.iftaCost, e.iftaCostFrequency, period), freq: e.iftaCostFrequency },
     { label: 'Toll', converted: toPeriod(e.toll ?? 0, e.tollFrequency, period), freq: e.tollFrequency ?? 'weekly' },

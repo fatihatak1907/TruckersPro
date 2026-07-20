@@ -201,7 +201,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
       <InsightsSheet
         insight={
           openInsight
-            ? buildInsight(openInsight, { loads, expenses, fuelEntries }, prevWeek, { mileage: mileageOn, period: calcPeriod })
+            ? buildInsight(openInsight, { loads, expenses, fuelEntries }, prevWeek, { mileage: mileageOn, period: calcPeriod, lease: driverType === 'lease' })
             : null
         }
         onClose={() => setOpenInsight(null)}

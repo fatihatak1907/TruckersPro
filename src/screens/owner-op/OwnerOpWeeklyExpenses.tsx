@@ -34,14 +34,25 @@ const EMPTY: WeeklyExpenses = {
 type AmountKey = 'truckPayment' | 'truckInsurance' | 'trailerInsurance' | 'trailerLease' | 'iftaCost' | 'toll' | 'adminFee';
 type FreqKey = `${AmountKey}Frequency`;
 
-const FIXED_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
+const OWNER_OP_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
   { key: 'truckPayment',     freqKey: 'truckPaymentFrequency',     label: 'TRUCK PAYMENT' },
   { key: 'truckInsurance',   freqKey: 'truckInsuranceFrequency',   label: 'TRUCK INSURANCE' },
   { key: 'trailerInsurance', freqKey: 'trailerInsuranceFrequency', label: 'TRAILER INSURANCE' },
   { key: 'trailerLease',     freqKey: 'trailerLeaseFrequency',     label: 'TRAILER LEASE' },
-  { key: 'iftaCost',         freqKey: 'iftaCostFrequency',         label: 'IFTA STICKER COST' },
-  { key: 'toll',             freqKey: 'tollFrequency',             label: 'TOLL' },
+  { key: 'iftaCost',         freqKey: 'iftaCostFrequency',         label: 'IFTA STICKER FEE' },
   { key: 'adminFee',         freqKey: 'adminFeeFrequency',         label: 'ADMIN FEE' },
+  { key: 'toll',             freqKey: 'tollFrequency',             label: 'TOLL' },
+];
+
+// Lease: no truck-insurance row; the single "INSURANCE" field stores in the
+// trailer-insurance slot so existing data and sync stay unchanged.
+const LEASE_FIELDS: { key: AmountKey; freqKey: FreqKey; label: string }[] = [
+  { key: 'truckPayment',     freqKey: 'truckPaymentFrequency',     label: 'TRUCK PAYMENT' },
+  { key: 'trailerInsurance', freqKey: 'trailerInsuranceFrequency', label: 'INSURANCE' },
+  { key: 'trailerLease',     freqKey: 'trailerLeaseFrequency',     label: 'TRAILER LEASE' },
+  { key: 'iftaCost',         freqKey: 'iftaCostFrequency',         label: 'IFTA STICKER FEE' },
+  { key: 'adminFee',         freqKey: 'adminFeeFrequency',         label: 'ADMIN FEE' },
+  { key: 'toll',             freqKey: 'tollFrequency',             label: 'TOLL' },
 ];
 
 type OtherEditorProps = {
@@ -178,7 +189,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
           automaticallyAdjustKeyboardInsets={true}
         >
           <Text style={s.sectionTitle}>RECURRING EXPENSES</Text>
-          {FIXED_FIELDS.map((f) => (
+          {(isOwnerOp ? OWNER_OP_FIELDS : LEASE_FIELDS).map((f) => (
             <ConfirmedAmountField
               key={`${f.key}:${weekKey}`}
               label={f.label}
