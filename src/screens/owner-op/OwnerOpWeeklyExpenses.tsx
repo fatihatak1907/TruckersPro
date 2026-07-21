@@ -9,7 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ConfirmedAmountField, FreqToggle } from '../../components/ConfirmedAmountField';
-import { saveWeeklyExpenses, getWeeklyExpenses } from '../../storage/storage';
+import { saveWeeklyExpenses, ensureExpensesForPeriod } from '../../storage/storage';
 import { useWeek } from '../../context/WeekContext';
 import { formatPeriodDisplay } from '../../utils/payPeriods';
 import { fmt } from '../../utils/format';
@@ -135,7 +135,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
 
   useFocusEffect(
     useCallback(() => {
-      getWeeklyExpenses(driverType, weekKey).then((saved) => {
+      ensureExpensesForPeriod(driverType, weekKey).then((saved) => {
         setExp(saved ?? { ...EMPTY, weekKey });
         setAddingOther(false);
         setEditingOtherId(null);

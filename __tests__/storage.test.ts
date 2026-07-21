@@ -192,6 +192,74 @@ describe('pay schedule storage', () => {
   });
 });
 
+describe('ensureExpensesForPeriod (recurring carry-forward)', () => {
+  const src: any = {
+    weekKey: '2026-07-13',
+    truckPayment: 600, truckPaymentFrequency: 'weekly',
+    truckInsurance: 250, truckInsuranceFrequency: 'monthly',
+    trailerInsurance: 80, trailerInsuranceFrequency: 'weekly',
+    trailerLease: 200, trailerLeaseFrequency: 'biweekly',
+    iftaCost: 50, iftaCostFrequency: 'weekly',
+    toll: 40, tollFrequency: 'weekly',
+    adminFee: 30, adminFeeFrequency: 'weekly',
+    other: 0, otherFrequency: 'weekly',
+    otherExpenses: [
+      { id: 'a', label: 'Truck wash', amount: 25, frequency: 'weekly' },
+      { id: 'b', label: 'Repair', amount: 300, frequency: 'once' },
+    ],
+    startOdometer: 100000, endOdometer: 103500,
+    mileageRate: 0.2,
+  };
+
+  it('copies recurring values into an empty later period, resets odometers, drops once-only extras', async () => {
+    const { ensureExpensesForPeriod, saveWeeklyExpenses, getWeeklyExpenses } = require('../src/storage/storage');
+    await saveWeeklyExpenses('owner-op', src);
+    const carried = await ensureExpensesForPeriod('owner-op', '2026-07-20');
+    expect(carried).not.toBeNull();
+    expect(carried!.truckPayment).toBe(600);
+    expect(carried!.truckInsuranceFrequency).toBe('monthly');
+    expect(carried!.trailerLeaseFrequency).toBe('biweekly');
+    expect(carried!.toll).toBe(40);
+    expect(carried!.mileageRate).toBe(0.2);
+    expect(carried!.startOdometer).toBe(0);
+    expect(carried!.endOdometer).toBe(0);
+    expect(carried!.otherExpenses).toEqual([
+      { id: 'a', label: 'Truck wash', amount: 25, frequency: 'weekly' },
+    ]);
+    // Persisted as this period's own row.
+    const persisted = await getWeeklyExpenses('owner-op', '2026-07-20');
+    expect(persisted?.weekKey).toBe('2026-07-20');
+  });
+
+  it('per-period edits stay independent of other periods', async () => {
+    const { ensureExpensesForPeriod, saveWeeklyExpenses, getWeeklyExpenses } = require('../src/storage/storage');
+    await saveWeeklyExpenses('owner-op', src);
+    const carried = await ensureExpensesForPeriod('owner-op', '2026-07-20');
+    await saveWeeklyExpenses('owner-op', { ...carried!, truckPayment: 999 });
+    expect((await getWeeklyExpenses('owner-op', '2026-07-13'))!.truckPayment).toBe(600);
+    expect((await getWeeklyExpenses('owner-op', '2026-07-20'))!.truckPayment).toBe(999);
+  });
+
+  it('returns existing expenses untouched and null when there is no history', async () => {
+    const { ensureExpensesForPeriod, saveWeeklyExpenses } = require('../src/storage/storage');
+    expect(await ensureExpensesForPeriod('owner-op', '2026-07-20')).toBeNull();
+    await saveWeeklyExpenses('owner-op', src);
+    const same = await ensureExpensesForPeriod('owner-op', '2026-07-13');
+    expect(same!.startOdometer).toBe(100000); // not reset — it already existed
+  });
+
+  it('does not carry when the source has no recurring amounts', async () => {
+    const { ensureExpensesForPeriod, saveWeeklyExpenses } = require('../src/storage/storage');
+    await saveWeeklyExpenses('owner-op', {
+      ...src,
+      truckPayment: 0, truckInsurance: 0, trailerInsurance: 0, trailerLease: 0,
+      iftaCost: 0, toll: 0, adminFee: 0,
+      otherExpenses: [{ id: 'b', label: 'Repair', amount: 300, frequency: 'once' }],
+    });
+    expect(await ensureExpensesForPeriod('owner-op', '2026-07-20')).toBeNull();
+  });
+});
+
 describe('period payment confirmations', () => {
   it('mark → paid, unmark → not paid', async () => {
     expect(await isPeriodPaid('owner-op', '2026-07-13')).toBe(false);

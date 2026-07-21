@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
-import { getLoadsForWeek, getWeeklyExpenses, deleteLoad, getFuelEntriesForWeek, saveProfileName, getProfileName } from '../../storage/storage';
+import { getLoadsForWeek, getWeeklyExpenses, ensureExpensesForPeriod, deleteLoad, getFuelEntriesForWeek, saveProfileName, getProfileName } from '../../storage/storage';
 import { calcOwnerOpSummary } from '../../utils/calculations';
 import { useWeek } from '../../context/WeekContext';
 import { C } from '../../theme';
@@ -55,7 +55,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
       const prevKey = addPeriods(weekKey, -1, schedule);
       Promise.all([
         getLoadsForWeek(driverType, weekKey),
-        getWeeklyExpenses(driverType, weekKey),
+        ensureExpensesForPeriod(driverType, weekKey),
         getFuelEntriesForWeek(driverType, weekKey),
         getProfileName(),
         getLoadsForWeek(driverType, prevKey),

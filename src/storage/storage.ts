@@ -51,6 +51,46 @@ export async function getWeeklyExpenses(driverType: string, weekKey: string): Pr
   return raw ? normalizeExpenses(JSON.parse(raw)) : null;
 }
 
+/** Expenses for the viewed period, creating them from the most recent earlier
+ *  period when this one is still empty: recurring amounts + frequencies and the
+ *  mileage rate carry forward; odometers reset and one-time ("once") extras are
+ *  dropped. The copy is saved (and synced) as this period's own row, so edits
+ *  stay per-period. Returns null when there's nothing to show or carry. */
+export async function ensureExpensesForPeriod(driverType: string, weekKey: string): Promise<WeeklyExpenses | null> {
+  const existing = await getWeeklyExpenses(driverType, weekKey);
+  if (existing) return existing;
+
+  const allKeys = await AsyncStorage.getAllKeys();
+  const prefix = `expenses:${driverType}:`;
+  const prior = allKeys
+    .filter((k) => k.startsWith(prefix))
+    .map((k) => k.slice(prefix.length))
+    .filter((k) => k < weekKey)
+    .sort()
+    .pop();
+  if (!prior) return null;
+  const src = await getWeeklyExpenses(driverType, prior);
+  if (!src) return null;
+
+  const carried: WeeklyExpenses = {
+    ...src,
+    weekKey,
+    startOdometer: 0,
+    endOdometer: 0,
+    other: 0,
+    otherFrequency: 'weekly',
+    otherExpenses: (src.otherExpenses ?? []).filter((o) => o.frequency !== 'once'),
+  };
+  const recurringTotal =
+    carried.truckPayment + carried.truckInsurance + carried.trailerInsurance +
+    carried.trailerLease + carried.iftaCost + (carried.toll ?? 0) + carried.adminFee +
+    (carried.otherExpenses ?? []).reduce((s, o) => s + o.amount, 0);
+  if (recurringTotal <= 0) return null;
+
+  await saveWeeklyExpenses(driverType, carried);
+  return carried;
+}
+
 export async function saveFuelEntry(driverType: string, entry: FuelEntry): Promise<void> {
   const existing = await getFuelEntriesForWeek(driverType, entry.weekKey);
   const updated = [...existing.filter((e) => e.id !== entry.id), entry];
