@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { ConfirmedAmountField, FreqToggle } from '../../components/ConfirmedAmountField';
+import { ConfirmedAmountField, FreqToggle, FREQ_HINTS } from '../../components/ConfirmedAmountField';
 import { saveWeeklyExpenses, ensureExpensesForPeriod } from '../../storage/storage';
 import { useWeek } from '../../context/WeekContext';
 import { formatPeriodDisplay } from '../../utils/payPeriods';
@@ -100,6 +100,7 @@ function OtherExpenseEditor({ initial, onCommit, onCancel }: OtherEditorProps) {
             placeholder="0.00"
             placeholderTextColor={C.muted}
           />
+          <Text style={s.freqHint}>{FREQ_HINTS[freq]}</Text>
         </View>
         <View style={s.otherControlRow}>
           <FreqToggle
@@ -189,6 +190,10 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
           automaticallyAdjustKeyboardInsets={true}
         >
           <Text style={s.sectionTitle}>RECURRING EXPENSES</Text>
+          <Text style={s.sectionNote}>
+            W / 2W / M amounts repeat in future periods automatically. Each period can be
+            edited on its own. 1X counts in this period only.
+          </Text>
           {(isOwnerOp ? OWNER_OP_FIELDS : LEASE_FIELDS).map((f) => (
             <ConfirmedAmountField
               key={`${f.key}:${weekKey}`}
@@ -301,6 +306,8 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   form: { padding: 20, paddingBottom: 140 },
   sectionTitle: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5, marginBottom: 12, marginTop: 8 },
+  sectionNote: { fontSize: 12, color: C.muted, lineHeight: 17, marginTop: -6, marginBottom: 12 },
+  freqHint: { fontSize: 11, fontWeight: '600', color: C.accent, paddingRight: 4 },
   input: {
     backgroundColor: C.card, borderRadius: 16,
     padding: 16, marginBottom: 8,

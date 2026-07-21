@@ -248,6 +248,17 @@ describe('ensureExpensesForPeriod (recurring carry-forward)', () => {
     expect(same!.startOdometer).toBe(100000); // not reset — it already existed
   });
 
+  it('one-time (1X) fixed fields reset instead of carrying forward', async () => {
+    const { ensureExpensesForPeriod, saveWeeklyExpenses } = require('../src/storage/storage');
+    await saveWeeklyExpenses('owner-op', {
+      ...src,
+      iftaCost: 150, iftaCostFrequency: 'once',
+    });
+    const carried = await ensureExpensesForPeriod('owner-op', '2026-07-20');
+    expect(carried!.iftaCost).toBe(0);
+    expect(carried!.truckPayment).toBe(600); // recurring fields still carry
+  });
+
   it('does not carry when the source has no recurring amounts', async () => {
     const { ensureExpensesForPeriod, saveWeeklyExpenses } = require('../src/storage/storage');
     await saveWeeklyExpenses('owner-op', {

@@ -72,9 +72,19 @@ export async function ensureExpensesForPeriod(driverType: string, weekKey: strin
   const src = await getWeeklyExpenses(driverType, prior);
   if (!src) return null;
 
+  // One-time (1X) amounts belong to their own period only — reset them here.
+  const keep = (amount: number | undefined, freq: string | undefined) =>
+    freq === 'once' ? 0 : (amount ?? 0);
   const carried: WeeklyExpenses = {
     ...src,
     weekKey,
+    truckPayment: keep(src.truckPayment, src.truckPaymentFrequency),
+    truckInsurance: keep(src.truckInsurance, src.truckInsuranceFrequency),
+    trailerInsurance: keep(src.trailerInsurance, src.trailerInsuranceFrequency),
+    trailerLease: keep(src.trailerLease, src.trailerLeaseFrequency),
+    iftaCost: keep(src.iftaCost, src.iftaCostFrequency),
+    toll: keep(src.toll, src.tollFrequency),
+    adminFee: keep(src.adminFee, src.adminFeeFrequency),
     startOdometer: 0,
     endOdometer: 0,
     other: 0,

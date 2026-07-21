@@ -7,6 +7,14 @@ import { fmt } from '../utils/format';
 import { C } from '../theme';
 import type { Frequency } from '../types';
 
+export const FREQ_HINTS: Record<string, string> = {
+  once: 'this period only',
+  daily: 'repeats daily',
+  weekly: 'repeats every week',
+  biweekly: 'repeats every 2 weeks',
+  monthly: 'repeats every month',
+};
+
 export function FreqToggle<F extends string>({
   value, onChange, options, labels,
 }: {
@@ -79,7 +87,7 @@ export function ConfirmedAmountField({
           {showFreq && (
             <View style={s.freqBadge}>
               <Text style={s.freqBadgeText}>
-                {frequency === 'monthly' ? 'M' : frequency === 'biweekly' ? '2W' : 'W'}
+                {frequency === 'monthly' ? 'M' : frequency === 'biweekly' ? '2W' : frequency === 'once' ? '1X' : 'W'}
               </Text>
             </View>
           )}
@@ -145,13 +153,14 @@ export function ConfirmedAmountField({
             placeholder={placeholder}
             placeholderTextColor={C.muted}
           />
+          <Text style={s.freqHint}>{FREQ_HINTS[draftFreq]}</Text>
         </View>
         <View style={s.controlRow}>
           <FreqToggle
             value={draftFreq}
             onChange={setDraftFreq}
-            options={['weekly', 'biweekly', 'monthly'] as const}
-            labels={{ weekly: 'W', biweekly: '2W', monthly: 'M' }}
+            options={['once', 'weekly', 'biweekly', 'monthly'] as const}
+            labels={{ once: '1X', weekly: 'W', biweekly: '2W', monthly: 'M' }}
           />
           <View style={{ flex: 1 }} />
           {editing && amount > 0 && (
@@ -185,6 +194,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingBottom: 8, marginBottom: 12,
   },
   amountRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4 },
+  freqHint: { fontSize: 11, fontWeight: '600', color: C.accent, paddingRight: 4 },
   controlRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   prefix: { fontSize: 16, color: C.sub },
   inputFlex: { flex: 1, fontSize: 16, paddingVertical: 16, color: C.text },
