@@ -33,13 +33,14 @@ export type ConfirmedAmountFieldProps = {
   amount: number;                 // saved value; 0 = empty
   frequency?: Frequency;          // omit for odometers
   money?: boolean;                // $ prefix + decimal pad (default true)
+  percent?: boolean;              // % display + decimal pad (overrides money)
   placeholder?: string;
   onCommit: (amount: number, frequency: Frequency) => void;
   onDelete: () => void;
 };
 
 export function ConfirmedAmountField({
-  label, amount, frequency, money = true, placeholder = '0.00', onCommit, onDelete,
+  label, amount, frequency, money = true, percent = false, placeholder = '0.00', onCommit, onDelete,
 }: ConfirmedAmountFieldProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -73,7 +74,7 @@ export function ConfirmedAmountField({
         <View style={s.lockedRow}>
           <Ionicons name="checkmark-circle" size={18} color={C.success} />
           <Text style={s.lockedValue}>
-            {money ? fmt(amount) : amount.toLocaleString()}
+            {percent ? `${amount}%` : money ? fmt(amount) : amount.toLocaleString()}
           </Text>
           {showFreq && (
             <View style={s.freqBadge}>
@@ -101,13 +102,13 @@ export function ConfirmedAmountField({
       <View style={s.expenseBlock}>
         <Text style={s.fieldLabel}>{label}</Text>
         <View style={s.inputRow}>
-          {money && <Text style={s.prefix}>$</Text>}
+          {percent ? <Text style={s.prefix}>%</Text> : money ? <Text style={s.prefix}>$</Text> : null}
           <TextInput
             style={s.inputFlex}
             value={draft}
             onChangeText={setDraft}
             onFocus={() => { if (!editing) startEdit(); }}
-            keyboardType={money ? 'decimal-pad' : 'number-pad'}
+            keyboardType={money || percent ? 'decimal-pad' : 'number-pad'}
             placeholder={placeholder}
             placeholderTextColor={C.muted}
           />

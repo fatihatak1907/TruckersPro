@@ -174,6 +174,9 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
                     <Text style={s.loadDetail}>TONU: <Text style={s.loadDetailBold}>{fmt(load.tonu ?? 0)}</Text></Text>
                   )}
                   <Text style={s.loadDetail}>Commission fee: <Text style={s.loadDetailBold}>{((load.commissionRate ?? 0) * 100).toFixed(0)}%</Text></Text>
+                  {(load.customerCommissionRate ?? 0) > 0 && (
+                    <Text style={s.loadDetail}>Customer commission: <Text style={s.loadDetailBold}>{((load.customerCommissionRate ?? 0) * 100).toFixed(1).replace(/\.0$/, '')}%</Text></Text>
+                  )}
                 </View>
                 <View style={s.loadActions}>
                   <TouchableOpacity style={s.editBtn} onPress={() => handleEdit(load)}>

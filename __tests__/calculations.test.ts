@@ -211,6 +211,32 @@ describe('toPeriod', () => {
     expect(toPeriod(100, undefined, bi)).toBe(200); // undefined behaves as weekly
   });
 
+  it('customer commission stacks with the regular commission on earnings', () => {
+    const { calcOwnerOpSummary } = require('../src/utils/calculations');
+    const empty = {
+      weekKey: '2026-05-25',
+      truckPayment: 0, truckPaymentFrequency: 'weekly',
+      truckInsurance: 0, truckInsuranceFrequency: 'weekly',
+      trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
+      trailerLease: 0, trailerLeaseFrequency: 'weekly',
+      iftaCost: 0, iftaCostFrequency: 'weekly',
+      adminFee: 0, adminFeeFrequency: 'weekly',
+      other: 0, otherFrequency: 'weekly',
+      startOdometer: 0, endOdometer: 0,
+    };
+    const load = {
+      id: 'cc1', weekKey: '2026-05-25', driverType: 'owner-op',
+      startLocation: 'A', endLocation: 'B', createdAt: '2026-05-25',
+      earnings: 1000, commissionRate: 0.10, customerCommissionRate: 0.05,
+    };
+    const s = calcOwnerOpSummary([load], empty, [], { mileage: false });
+    expect(s.totalExpenses).toBeCloseTo(150, 10); // 10% + 5% of 1000
+    expect(s.netProfit).toBeCloseTo(850, 10);
+    // Loads without the field behave exactly as before.
+    const s2 = calcOwnerOpSummary([{ ...load, customerCommissionRate: undefined }], empty, [], { mileage: false });
+    expect(s2.totalExpenses).toBe(100);
+  });
+
   it('toll flows into fixed expenses via its own frequency', () => {
     const { calcOwnerOpSummary } = require('../src/utils/calculations');
     const base = {

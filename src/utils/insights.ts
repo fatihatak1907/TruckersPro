@@ -78,7 +78,10 @@ function expenseRows(w: WeekData, opts?: CalcOpts): InsightRow[] {
   const e = normalizeExpenses(w.expenses);
   const period = opts?.period ?? { days: 7, isMonth: false };
   const isWeeklyPeriod = period.days === 7 && !period.isMonth;
-  const commission = w.loads.reduce((sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0), 0);
+  const commission = w.loads.reduce(
+    (sum, l) => sum + (l.earnings ?? 0) * ((l.commissionRate ?? 0) + (l.customerCommissionRate ?? 0)),
+    0
+  );
 
   const items: { label: string; converted: number; freq: Frequency | OtherFrequency; actual?: boolean }[] = [
     { label: 'Truck payment', converted: toPeriod(e.truckPayment, e.truckPaymentFrequency, period), freq: e.truckPaymentFrequency },

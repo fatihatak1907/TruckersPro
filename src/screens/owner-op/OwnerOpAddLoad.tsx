@@ -32,6 +32,7 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
   const [earnings, setEarnings] = useState(0);
   const [tonu, setTonu] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number | null>(null);
+  const [customerPct, setCustomerPct] = useState(0); // whole percent, e.g. 5 = 5%
 
   useFocusEffect(
     useCallback(() => {
@@ -45,18 +46,23 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
         setEarnings(editLoad.earnings ?? 0);
         setTonu(editLoad.tonu ?? 0);
         setCommissionRate(editLoad.commissionRate ?? null);
+        setCustomerPct(Math.round(((editLoad.customerCommissionRate ?? 0) * 100) * 100) / 100);
       } else {
         setStartCity(''); setStartState(null);
         setEndCity(''); setEndState(null);
         setEarnings(0);
         setTonu(0);
         setCommissionRate(null);
+        setCustomerPct(0);
       }
     }, [editLoad?.id])
   );
 
   const commissionAmount = commissionRate != null && earnings > 0
     ? (earnings * commissionRate).toFixed(2)
+    : null;
+  const customerAmount = customerPct > 0 && earnings > 0
+    ? (earnings * (customerPct / 100)).toFixed(2)
     : null;
 
   async function handleSave() {
@@ -79,6 +85,7 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
       earnings,
       tonu,
       commissionRate: commissionRate ?? 0,
+      customerCommissionRate: customerPct > 0 ? customerPct / 100 : undefined,
     };
     await saveLoad(load);
     navigation.setParams({ load: undefined });
@@ -129,10 +136,27 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
             onSelect={setCommissionRate}
           />
 
-          {commissionAmount !== null && (
+          <ConfirmedAmountField
+            key={`custcomm:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="CUSTOMER COMMISSION (%)"
+            amount={customerPct}
+            percent
+            placeholder="e.g. 5"
+            onCommit={(v) => setCustomerPct(Math.min(100, Math.max(0, v)))}
+            onDelete={() => setCustomerPct(0)}
+          />
+
+          {(commissionAmount !== null || customerAmount !== null) && (
             <View style={s.calcBox}>
               <Ionicons name="calculator-outline" size={16} color={C.accent} />
-              <Text style={s.calcText}>Commission: ${commissionAmount}</Text>
+              <View>
+                {commissionAmount !== null && (
+                  <Text style={s.calcText}>Commission: ${commissionAmount}</Text>
+                )}
+                {customerAmount !== null && (
+                  <Text style={s.calcText}>Customer commission: ${customerAmount}</Text>
+                )}
+              </View>
             </View>
           )}
 

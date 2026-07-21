@@ -10,6 +10,7 @@ export type LoadEntry = {
   earnings?: number;
   tonu?: number;
   commissionRate?: number;
+  customerCommissionRate?: number; // extra commission the customer charges, as a fraction (0.05 = 5%)
   paidMileage?: number;
   centsPerMile?: number;
   extraMileage?: number;

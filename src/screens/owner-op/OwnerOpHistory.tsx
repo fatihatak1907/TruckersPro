@@ -203,6 +203,9 @@ export function OwnerOpHistory({ navigation, route }: Props) {
                           Earnings: <Text style={s.bold}>{fmt(load.earnings ?? 0)}</Text>
                           {(load.tonu ?? 0) > 0 ? `  TONU: ${fmt(load.tonu ?? 0)}` : ''}
                           {'  '}Commission fee: <Text style={s.bold}>{((load.commissionRate ?? 0) * 100).toFixed(0)}%</Text>
+                          {(load.customerCommissionRate ?? 0) > 0 ? (
+                            <>  Customer: <Text style={s.bold}>{((load.customerCommissionRate ?? 0) * 100).toFixed(1).replace(/\.0$/, '')}%</Text></>
+                          ) : null}
                         </Text>
                         <View style={s.loadActions}>
                           <TouchableOpacity style={s.editBtn} onPress={() => handleEditLoad(load)}>

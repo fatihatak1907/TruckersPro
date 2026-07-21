@@ -62,7 +62,7 @@ export function calcOwnerOpSummary(
     (expenses.otherExpenses ?? []).reduce((s, o) => s + toPeriod(o.amount, o.frequency, period), 0);
 
   const commissionExpenses = loads.reduce(
-    (sum, l) => sum + (l.earnings ?? 0) * (l.commissionRate ?? 0),
+    (sum, l) => sum + (l.earnings ?? 0) * ((l.commissionRate ?? 0) + (l.customerCommissionRate ?? 0)),
     0
   );
 
