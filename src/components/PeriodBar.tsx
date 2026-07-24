@@ -23,6 +23,9 @@ export function PeriodBar({
         <Ionicons name="chevron-back" size={20} color={C.sub} />
       </TouchableOpacity>
       <View style={s.center}>
+        <Text style={s.todayText}>
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+        </Text>
         <Text style={s.range}>{formatPeriodDisplay(period)}</Text>
         <Text style={s.payText}>Pay day {formatPayDate(period)}</Text>
         <TouchableOpacity
@@ -63,6 +66,7 @@ const s = StyleSheet.create({
   navBtn: { padding: 4 },
   navBtnDisabled: { opacity: 0.3 },
   center: { flex: 1, alignItems: 'center' },
+  todayText: { fontSize: 11, fontWeight: '700', color: C.accent, marginBottom: 3 },
   range: { fontSize: 14, fontWeight: '700', color: C.text },
   payText: { fontSize: 11, fontWeight: '600', color: C.sub, marginTop: 2 },
   calBtn: {
