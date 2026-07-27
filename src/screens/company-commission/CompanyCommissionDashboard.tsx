@@ -38,6 +38,8 @@ export function CompanyCommissionDashboard({ navigation }: Props) {
   );
 
   const summary = loads.length > 0 ? calcCompanyCommissionSummary(loads) : { weekKey, totalEarnings: 0, netProfit: 0 };
+  // Load revenue before the commission split — the driver's pay is a share of this.
+  const grossLoads = loads.reduce((sum, l) => sum + (l.earnings ?? 0), 0);
 
   function handleEditName() {
     setNameModalOpen(true);
@@ -84,6 +86,9 @@ export function CompanyCommissionDashboard({ navigation }: Props) {
           <Text style={s.netLabel}>NET PROFIT</Text>
           <Text style={[s.netValue, { color: summary.netProfit >= 0 ? C.success : C.danger }]}>
             {fmt(summary.netProfit)}
+          </Text>
+          <Text style={s.grossLine}>
+            Gross loads <Text style={s.grossValue}>{fmt(grossLoads)}</Text>
           </Text>
         </View>
 
@@ -171,6 +176,8 @@ const s = StyleSheet.create({
   paidBadgeText: { fontSize: 10, fontWeight: '800', color: C.accentText },
   netLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5 },
   netValue: { fontSize: 40, fontWeight: '900', marginTop: 8 },
+  grossLine: { fontSize: 12, color: C.sub, marginTop: 8, fontWeight: '600' },
+  grossValue: { color: C.text, fontWeight: '800' },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: {
     flex: 1, backgroundColor: C.card, borderRadius: 18, padding: 14, alignItems: 'center',

@@ -132,6 +132,9 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
           <Text style={[s.netValue, { color: summary.netProfit >= 0 ? C.success : C.danger }]}>
             {fmt(summary.netProfit)}
           </Text>
+          <Text style={s.grossLine}>
+            Gross earnings <Text style={s.grossValue}>{fmt(summary.totalEarnings)}</Text>
+          </Text>
           <Text style={s.tapHint}>Tap for details</Text>
         </TouchableOpacity>
 
@@ -245,6 +248,8 @@ const s = StyleSheet.create({
   paidBadgeText: { fontSize: 10, fontWeight: '800', color: C.accentText },
   netLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5 },
   netValue: { fontSize: 40, fontWeight: '900', marginTop: 8 },
+  grossLine: { fontSize: 12, color: C.sub, marginTop: 8, fontWeight: '600' },
+  grossValue: { color: C.text, fontWeight: '800' },
   tapHint: { fontSize: 11, color: C.muted, marginTop: 6, fontWeight: '600' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   statCard: {

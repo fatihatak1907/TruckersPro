@@ -85,6 +85,9 @@ export function CompanyMileDashboard({ navigation }: Props) {
           <Text style={[s.netValue, { color: summary.netProfit >= 0 ? C.success : C.danger }]}>
             {fmt(summary.netProfit)}
           </Text>
+          <Text style={s.grossLine}>
+            Gross earnings <Text style={s.grossValue}>{fmt(summary.totalEarnings)}</Text>
+          </Text>
         </View>
 
         <View style={s.statsRow}>
@@ -171,6 +174,8 @@ const s = StyleSheet.create({
   paidBadgeText: { fontSize: 10, fontWeight: '800', color: C.accentText },
   netLabel: { fontSize: 11, fontWeight: '700', color: C.sub, letterSpacing: 1.5 },
   netValue: { fontSize: 40, fontWeight: '900', marginTop: 8 },
+  grossLine: { fontSize: 12, color: C.sub, marginTop: 8, fontWeight: '600' },
+  grossValue: { color: C.text, fontWeight: '800' },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statCard: {
     flex: 1, backgroundColor: C.card, borderRadius: 18, padding: 14, alignItems: 'center',
