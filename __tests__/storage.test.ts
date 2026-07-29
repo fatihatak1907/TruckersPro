@@ -95,6 +95,52 @@ describe('getAllWeekKeys', () => {
     expect(keys).toContain('2026-05-18');
     expect(keys).toHaveLength(2);
   });
+
+  it('includes periods that only have fuel or expenses (no loads)', async () => {
+    const { saveFuelEntry, saveWeeklyExpenses } = require('../src/storage/storage');
+    await saveFuelEntry('owner-op', {
+      id: 'f1', weekKey: '2026-06-01', type: 'diesel', cost: 500, createdAt: '2026-06-01T10:00:00Z',
+    });
+    await saveWeeklyExpenses('owner-op', {
+      weekKey: '2026-06-08',
+      truckPayment: 600, truckPaymentFrequency: 'weekly',
+      truckInsurance: 0, truckInsuranceFrequency: 'weekly',
+      trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
+      trailerLease: 0, trailerLeaseFrequency: 'weekly',
+      iftaCost: 0, iftaCostFrequency: 'weekly',
+      adminFee: 0, adminFeeFrequency: 'weekly',
+      other: 0, otherFrequency: 'weekly',
+      startOdometer: 0, endOdometer: 0,
+    });
+    const keys = await getAllWeekKeys('owner-op');
+    expect(keys).toContain('2026-06-01');
+    expect(keys).toContain('2026-06-08');
+  });
+});
+
+describe('deleteWeekData', () => {
+  it('removes loads, fuel AND expenses locally (mirrors the synced delete)', async () => {
+    const { saveFuelEntry, saveWeeklyExpenses, deleteWeekData, getFuelEntriesForWeek } = require('../src/storage/storage');
+    await saveLoad({ ...sampleLoad, id: 'w1', weekKey: '2026-06-15' });
+    await saveFuelEntry('owner-op', {
+      id: 'f2', weekKey: '2026-06-15', type: 'diesel', cost: 400, createdAt: '2026-06-15T10:00:00Z',
+    });
+    await saveWeeklyExpenses('owner-op', {
+      weekKey: '2026-06-15',
+      truckPayment: 600, truckPaymentFrequency: 'weekly',
+      truckInsurance: 0, truckInsuranceFrequency: 'weekly',
+      trailerInsurance: 0, trailerInsuranceFrequency: 'weekly',
+      trailerLease: 0, trailerLeaseFrequency: 'weekly',
+      iftaCost: 0, iftaCostFrequency: 'weekly',
+      adminFee: 0, adminFeeFrequency: 'weekly',
+      other: 0, otherFrequency: 'weekly',
+      startOdometer: 0, endOdometer: 0,
+    });
+    await deleteWeekData('owner-op', '2026-06-15');
+    expect(await getLoadsForWeek('owner-op', '2026-06-15')).toHaveLength(0);
+    expect(await getFuelEntriesForWeek('owner-op', '2026-06-15')).toHaveLength(0);
+    expect(await getWeeklyExpenses('owner-op', '2026-06-15')).toBeNull();
+  });
 });
 
 import { syncEngine } from '../src/sync/syncEngine';

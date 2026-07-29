@@ -72,7 +72,9 @@ export function calcOwnerOpSummary(
 
   const totalExpenses = fixedExpenses + commissionExpenses + fuelTotal;
   const mileageOn = opts?.mileage !== false;
-  const milesDriven = mileageOn ? expenses.endOdometer - expenses.startOdometer : 0;
+  // Clamp: a typo'd odometer (end < start) must not turn into negative miles
+  // that inflate net profit via a negative deduction.
+  const milesDriven = mileageOn ? Math.max(0, expenses.endOdometer - expenses.startOdometer) : 0;
   const mileageDeduction = milesDriven * (expenses.mileageRate ?? 0.14);
   const netProfit = totalEarnings - totalExpenses - mileageDeduction;
 

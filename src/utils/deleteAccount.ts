@@ -28,6 +28,9 @@ async function runDelete(): Promise<void> {
   syncEngine.stop();
   const { error } = await supabase.rpc('delete_own_account');
   if (error) {
+    // Deletion didn't happen — bring background sync back so the account
+    // keeps working normally.
+    syncEngine.start();
     Alert.alert(
       "Couldn't delete account",
       `${error.message}\n\nPlease check your connection and try again, or email admin@aigodpro.com for help.`

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '../supabase/client';
-import { SyncOp, QueuedOp, SYNC_QUEUE_KEY } from './types';
+import { SyncOp, QueuedOp, SYNC_QUEUE_KEY, SYNC_DEAD_KEY, MAX_OP_ATTEMPTS } from './types';
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -153,24 +153,68 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
 
 let flushing = false;
 let inFlight: Promise<void> | null = null;
+// Bumped by stop(): any flush from a previous generation must not write the
+// queue back after sign-out has wiped it (would resurrect the old user's ops).
+let generation = 0;
+
+// Remove one op by id, re-reading the queue so ops enqueued mid-flush survive.
+async function removeOp(id: string): Promise<void> {
+  const q = await readQueue();
+  await writeQueue(q.filter((x) => x.id !== id));
+}
+
+async function updateOp(op: QueuedOp): Promise<void> {
+  const q = await readQueue();
+  const i = q.findIndex((x) => x.id === op.id);
+  if (i >= 0) {
+    q[i] = op;
+    await writeQueue(q);
+  }
+}
+
+async function parkDeadOp(op: QueuedOp): Promise<void> {
+  const raw = await AsyncStorage.getItem(SYNC_DEAD_KEY);
+  const dead: QueuedOp[] = raw ? JSON.parse(raw) : [];
+  dead.push(op);
+  await AsyncStorage.setItem(SYNC_DEAD_KEY, JSON.stringify(dead.slice(-50)));
+  await removeOp(op.id);
+}
 
 async function doFlush(): Promise<void> {
   flushing = true;
+  const myGeneration = generation;
   try {
     const userId = await getUserId();
     if (!userId) return;
-    let queue = await readQueue();
-    while (queue.length > 0) {
+    // Re-read the queue every iteration: enqueue() may append while a dispatch
+    // is awaiting the network, and writing a stale snapshot would erase those
+    // ops permanently (local record saved, never synced).
+    while (true) {
+      if (generation !== myGeneration) return;
+      const queue = await readQueue();
+      if (queue.length === 0) return;
       const head = queue[0];
+      // Op enqueued by a different account on this device: drop it. It must
+      // never be uploaded under the current user's id.
+      if (head.owner && head.owner !== userId) {
+        if (generation !== myGeneration) return;
+        await removeOp(head.id);
+        continue;
+      }
       try {
         await dispatch(head.op, userId);
-        queue = queue.slice(1);
-        await writeQueue(queue);
+        if (generation !== myGeneration) return;
+        await removeOp(head.id);
       } catch (err: any) {
         head.attempts += 1;
         head.lastError = err?.message ?? String(err);
-        queue[0] = head;
-        await writeQueue(queue);
+        if (generation !== myGeneration) return;
+        if (head.attempts >= MAX_OP_ATTEMPTS) {
+          // Poison pill: park it so it stops blocking every later op.
+          await parkDeadOp(head);
+          continue;
+        }
+        await updateOp(head);
         return;
       }
     }
@@ -187,12 +231,23 @@ async function flush(): Promise<void> {
 }
 
 async function enqueue(op: SyncOp): Promise<void> {
+  // getSession reads the locally cached session — works offline. An op with
+  // no resolvable owner still syncs (legacy behavior); the owner stamp only
+  // exists to stop another account's leftovers from being uploaded.
+  let owner: string | undefined;
+  try {
+    const { data } = await supabase.auth.getSession();
+    owner = data.session?.user?.id;
+  } catch {
+    owner = undefined;
+  }
   const queue = await readQueue();
   queue.push({
     id: uid(),
     op,
     attempts: 0,
     createdAt: new Date().toISOString(),
+    owner,
   });
   await writeQueue(queue);
   flush().catch(() => {});
@@ -218,6 +273,7 @@ function start(): void {
 }
 
 function stop(): void {
+  generation += 1; // invalidate any in-flight flush's queue writes
   if (netUnsub) { netUnsub(); netUnsub = null; }
   if (intervalId) { clearInterval(intervalId); intervalId = null; }
 }

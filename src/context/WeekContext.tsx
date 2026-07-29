@@ -6,6 +6,7 @@ import {
   getPeriod,
   addPeriods,
   periodForDate,
+  todayKey,
 } from '../utils/payPeriods';
 import { getSchedule } from '../storage/storage';
 import type { PaySchedule, PayPeriod } from '../types';
@@ -49,7 +50,9 @@ const WeekContext = createContext<WeekContextType>({
   goToNext: () => {},
 });
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+// Local calendar day — NOT toISOString(), which is UTC and would advance the
+// period at 4–7pm local for US timezones.
+const todayIso = () => todayKey();
 
 /** Period the dashboard opens on: today's period, clamped up to the first period
  *  when startDate lies in the future. */

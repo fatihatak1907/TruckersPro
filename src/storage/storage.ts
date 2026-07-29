@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LoadEntry, WeeklyExpenses, FuelEntry, PaySchedule } from '../types';
 import { syncEngine } from '../sync/syncEngine';
-import { SYNC_QUEUE_KEY, SYNC_MIGRATED_KEY } from '../sync/types';
+import { SYNC_QUEUE_KEY, SYNC_MIGRATED_KEY, SYNC_DEAD_KEY } from '../sync/types';
 import { supabase } from '../supabase/client';
 import { normalizeExpenses } from '../utils/calculations';
 
@@ -121,17 +121,27 @@ export async function deleteFuelEntry(driverType: string, weekKey: string, entry
 }
 
 export async function getAllWeekKeys(driverType: string): Promise<string[]> {
+  // Union across loads, fuel and expenses: a period with only fuel or only
+  // expenses must still appear in History.
   const allKeys = await AsyncStorage.getAllKeys();
-  const prefix = `loads:${driverType}:`;
-  return allKeys
-    .filter((k) => k.startsWith(prefix))
-    .map((k) => k.replace(prefix, ''))
-    .sort()
-    .reverse();
+  const prefixes = [`loads:${driverType}:`, `fuel:${driverType}:`, `expenses:${driverType}:`];
+  const weeks = new Set<string>();
+  for (const k of allKeys) {
+    for (const p of prefixes) {
+      if (k.startsWith(p)) weeks.add(k.slice(p.length));
+    }
+  }
+  return [...weeks].sort().reverse();
 }
 
 export async function deleteWeekData(driverType: string, weekKey: string): Promise<void> {
-  await AsyncStorage.removeItem(loadsKey(driverType, weekKey));
+  // Must mirror the remote op exactly: the synced deleteWeek removes loads,
+  // fuel AND expenses server-side, so remove all three locally too.
+  await AsyncStorage.multiRemove([
+    loadsKey(driverType, weekKey),
+    fuelKey(driverType, weekKey),
+    expensesKey(driverType, weekKey),
+  ]);
   await syncEngine.enqueue({ kind: 'deleteWeek', payload: { driverType, weekKey } });
 }
 
@@ -234,7 +244,8 @@ export async function wipeAll(): Promise<void> {
     k.startsWith('paid:') ||
     k.startsWith('profile:') ||
     k === SYNC_QUEUE_KEY ||
-    k === SYNC_MIGRATED_KEY
+    k === SYNC_MIGRATED_KEY ||
+    k === SYNC_DEAD_KEY
   );
   if (ours.length) await AsyncStorage.multiRemove(ours);
 }
@@ -260,12 +271,12 @@ export async function pullFromSupabase(userId: string): Promise<void> {
       startLocation: row.start_location,
       endLocation: row.end_location,
       createdAt: row.created_at,
-      earnings: row.earnings ?? undefined,
-      tonu: row.tonu ?? undefined,
-      commissionRate: row.commission_rate ?? undefined,
+      earnings: row.earnings != null ? Number(row.earnings) : undefined,
+      tonu: row.tonu != null ? Number(row.tonu) : undefined,
+      commissionRate: row.commission_rate != null ? Number(row.commission_rate) : undefined,
       customerCommissionRate: row.customer_commission_rate != null ? Number(row.customer_commission_rate) : undefined,
-      paidMileage: row.paid_mileage ?? undefined,
-      centsPerMile: row.cents_per_mile ?? undefined,
+      paidMileage: row.paid_mileage != null ? Number(row.paid_mileage) : undefined,
+      centsPerMile: row.cents_per_mile != null ? Number(row.cents_per_mile) : undefined,
       extraMileage: row.extra_mileage != null ? Number(row.extra_mileage) : undefined,
     };
     const k = `loads:${row.driver_type}:${row.week_key}`;

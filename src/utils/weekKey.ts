@@ -7,7 +7,11 @@ export function getWeekKey(date: Date): string {
 }
 
 export function getCurrentWeekKey(): string {
-  return getWeekKey(new Date());
+  // Anchor "now" to the device's LOCAL calendar day before the UTC week math:
+  // for US drivers, plain new Date() would roll to the next week at 4–7pm
+  // local every Sunday (midnight UTC), putting evening entries in next week.
+  const now = new Date();
+  return getWeekKey(new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())));
 }
 
 export function addWeeks(weekKey: string, delta: number): string {

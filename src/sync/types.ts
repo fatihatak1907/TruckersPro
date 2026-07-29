@@ -17,7 +17,12 @@ export type QueuedOp = {
   attempts: number;
   lastError?: string;
   createdAt: string;
+  owner?: string; // uid the op belongs to; flush drops ops owned by another user
 };
 
 export const SYNC_QUEUE_KEY = 'sync:queue';
 export const SYNC_MIGRATED_KEY = 'sync:migrated';
+// Ops that failed too many times are parked here so they stop blocking the
+// queue. Local data is unaffected; these are diagnostics, not user data.
+export const SYNC_DEAD_KEY = 'sync:dead';
+export const MAX_OP_ATTEMPTS = 8;

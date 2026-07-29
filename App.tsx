@@ -1,7 +1,7 @@
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, ActivityIndicator, StyleSheet, TouchableOpacity, AppState } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { WeekProvider } from './src/context/WeekContext';
 import {
@@ -14,7 +14,7 @@ import { PickDriverTypeScreen } from './src/screens/PickDriverTypeScreen';
 import { supabase } from './src/supabase/client';
 import { syncEngine } from './src/sync/syncEngine';
 import { runMigrationAndPull } from './src/sync/migration';
-import { saveDriverType, wipeAll, getLastUserId, setLastUserId } from './src/storage/storage';
+import { saveDriverType, getDriverType, wipeAll, getLastUserId, setLastUserId } from './src/storage/storage';
 import { C } from './src/theme';
 
 type AuthState = 'loading' | 'signed-out' | 'needs-profile' | 'migrating' | 'ready' | 'error';
@@ -95,6 +95,17 @@ export default function App() {
       syncEngine.start();
       setAuthState('ready');
     } catch (e: any) {
+      // Offline fallback: if this device already belongs to this user, open the
+      // app on local data — the sync engine reconciles when signal returns.
+      // A trucker in a dead zone must never be locked out of their own records.
+      const lastUid = await getLastUserId().catch(() => null);
+      const localType = await getDriverType().catch(() => null);
+      if (lastUid === uid && localType) {
+        setDriverType(localType);
+        syncEngine.start();
+        setAuthState('ready');
+        return;
+      }
       setError(e?.message ?? 'Sync failed');
       setAuthState('error');
     }
@@ -105,6 +116,17 @@ export default function App() {
     // sessions for users that were deleted server-side.
     supabase.auth.getUser().then(async ({ data, error }) => {
       if (error || !data.user) {
+        // Only a definitive rejection (401/403: token revoked, user deleted)
+        // means the session is bad. A network failure in a dead zone must NOT
+        // sign the user out — fall back to the cached session and open offline.
+        const definitive = !!error && (error.status === 401 || error.status === 403);
+        if (!definitive) {
+          const { data: cached } = await supabase.auth.getSession();
+          if (cached.session?.user) {
+            bootstrap(cached.session.user.id);
+            return;
+          }
+        }
         // Stale or invalid session — clear it locally before showing auth.
         await supabase.auth.signOut().catch(() => {});
         setAuthState('signed-out');
@@ -126,7 +148,18 @@ export default function App() {
         bootstrap(session.user.id);
       }
     });
-    return () => sub.subscription.unsubscribe();
+    // Refresh auth tokens only while the app is in the foreground
+    // (Supabase's recommended React Native setup).
+    supabase.auth.startAutoRefresh();
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') supabase.auth.startAutoRefresh();
+      else supabase.auth.stopAutoRefresh();
+    });
+
+    return () => {
+      sub.subscription.unsubscribe();
+      appStateSub.remove();
+    };
   }, []);
 
   let content: React.ReactNode;

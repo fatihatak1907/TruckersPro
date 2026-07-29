@@ -75,6 +75,12 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
       Alert.alert('Missing fields', 'Enter earnings and select a commission rate, or enter a TONU amount.');
       return;
     }
+    // TONU alone doesn't need a commission — but if earnings were entered too,
+    // a commission choice is still required (0% is a valid choice).
+    if (earnings > 0 && commissionRate === null) {
+      Alert.alert('Missing fields', 'Select a commission rate for the earnings (0% is an option).');
+      return;
+    }
     const load: LoadEntry = {
       id: editLoad?.id ?? uuidv4(),
       weekKey: editLoad?.weekKey ?? weekKey,

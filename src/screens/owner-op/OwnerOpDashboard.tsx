@@ -39,7 +39,7 @@ type Props = { navigation: any; route: any };
 
 export function OwnerOpDashboard({ navigation, route }: Props) {
   const driverType: string = route.params?.driverType ?? 'owner-op';
-  const { weekKey, period, schedule, needsSetup, reloadSchedule } = useWeek();
+  const { weekKey, period, schedule, scheduleLoaded, needsSetup, reloadSchedule } = useWeek();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [loads, setLoads] = useState<LoadEntry[]>([]);
   const [expenses, setExpenses] = useState<WeeklyExpenses>({ ...EMPTY_EXPENSES, weekKey });
@@ -52,6 +52,10 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
 
   useFocusEffect(
     useCallback(() => {
+      // Wait for the stored schedule: the boot-default weekly key may be
+      // off-lattice for biweekly/monthly users, and ensureExpensesForPeriod
+      // would create (and sync) a spurious expenses row under it.
+      if (!scheduleLoaded) return;
       const prevKey = addPeriods(weekKey, -1, schedule);
       Promise.all([
         getLoadsForWeek(driverType, weekKey),
@@ -72,7 +76,7 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
           fuelEntries: pf,
         });
       });
-    }, [weekKey, schedule])
+    }, [weekKey, schedule, scheduleLoaded])
   );
 
   const mileageOn = driverType !== 'owner-op';
