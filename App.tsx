@@ -144,7 +144,9 @@ export default function App() {
         setUserId(null);
         setDriverType(null);
         setAuthState('signed-out');
-      } else if (event === 'SIGNED_IN' && session?.user) {
+      } else if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session?.user) {
+        // PASSWORD_RECOVERY is what verifyOtp({type:'recovery'}) emits — it is a
+        // real signed-in session, so it must open the app like SIGNED_IN does.
         bootstrap(session.user.id);
       }
     });

@@ -94,10 +94,19 @@ export function LoginScreen({ navigation }: Props) {
       );
       return;
     }
-    // Verified: we now have a session. Set the new password; the app signs in
-    // automatically via the SIGNED_IN listener in App.tsx.
-    await supabase.auth.updateUser({ password: newPwd }).catch(() => {});
+    // Verified: we now have a session. Set the new password — never swallow a
+    // failure here, or the screen would sit there doing nothing.
+    const { error: updErr } = await supabase.auth.updateUser({ password: newPwd });
     setSubmitting(false);
+    if (updErr) {
+      setError(
+        updErr.message?.toLowerCase().includes('different from the old')
+          ? 'Choose a password different from your current one.'
+          : `Couldn't set the new password: ${updErr.message}`
+      );
+      return;
+    }
+    // App.tsx's PASSWORD_RECOVERY/SIGNED_IN listener now opens the dashboard.
   }
 
   function openForgot() {
