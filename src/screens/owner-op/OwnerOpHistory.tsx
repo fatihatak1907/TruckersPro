@@ -11,7 +11,7 @@ import {
   getLoadsForWeek, getWeeklyExpenses, getAllWeekKeys,
   getFuelEntriesForWeek, deleteLoad, deleteWeekData, getPaidPeriodKeys,
 } from '../../storage/storage';
-import { calcOwnerOpSummary } from '../../utils/calculations';
+import { calcOwnerOpSummary, loadTotalMiles, loadRpm } from '../../utils/calculations';
 import { useWeek } from '../../context/WeekContext';
 import { getPeriod, periodCalcOpts, formatPeriodDisplay, formatPayDate } from '../../utils/payPeriods';
 import { C } from '../../theme';
@@ -205,6 +205,12 @@ export function OwnerOpHistory({ navigation, route }: Props) {
                           {'  '}Commission fee: <Text style={s.bold}>{((load.commissionRate ?? 0) * 100).toFixed(0)}%</Text>
                           {(load.customerCommissionRate ?? 0) > 0 ? (
                             <>  Customer: <Text style={s.bold}>{((load.customerCommissionRate ?? 0) * 100).toFixed(1).replace(/\.0$/, '')}%</Text></>
+                          ) : null}
+                          {loadTotalMiles(load) > 0 ? (
+                            <>  Miles: <Text style={s.bold}>{loadTotalMiles(load).toLocaleString()}</Text></>
+                          ) : null}
+                          {loadRpm(load) !== null ? (
+                            <>  <Text style={s.bold}>${loadRpm(load)!.toFixed(2)}/mi</Text></>
                           ) : null}
                         </Text>
                         <View style={s.loadActions}>

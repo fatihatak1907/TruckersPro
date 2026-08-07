@@ -36,6 +36,8 @@ async function dispatch(op: SyncOp, userId: string): Promise<void> {
         tonu: l.tonu ?? null,
         commission_rate: l.commissionRate ?? null,
         customer_commission_rate: l.customerCommissionRate ?? null,
+        loaded_miles: l.loadedMiles ?? null,
+        deadhead_miles: l.deadheadMiles ?? null,
         paid_mileage: l.paidMileage ?? null,
         cents_per_mile: l.centsPerMile ?? null,
         extra_mileage: l.extraMileage ?? null,

@@ -11,6 +11,8 @@ export type LoadEntry = {
   tonu?: number;
   commissionRate?: number;
   customerCommissionRate?: number; // extra commission the customer charges, as a fraction (0.05 = 5%)
+  loadedMiles?: number; // owner-op/lease: paid haul miles
+  deadheadMiles?: number; // owner-op/lease: empty miles to the pickup
   paidMileage?: number;
   centsPerMile?: number;
   extraMileage?: number;

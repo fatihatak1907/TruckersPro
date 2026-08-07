@@ -30,6 +30,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
   const [endCity, setEndCity] = useState('');
   const [endState, setEndState] = useState<string | null>(null);
   const [earnings, setEarnings] = useState(0);
+  const [loadedMiles, setLoadedMiles] = useState(0);
+  const [deadheadMiles, setDeadheadMiles] = useState(0);
   const [tonu, setTonu] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number | null>(null);
   const [customerPct, setCustomerPct] = useState(0); // whole percent, e.g. 5 = 5%
@@ -44,6 +46,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
         setEndCity(end.city);
         setEndState(end.state);
         setEarnings(editLoad.earnings ?? 0);
+        setLoadedMiles(editLoad.loadedMiles ?? 0);
+        setDeadheadMiles(editLoad.deadheadMiles ?? 0);
         setTonu(editLoad.tonu ?? 0);
         setCommissionRate(editLoad.commissionRate ?? null);
         setCustomerPct(Math.round(((editLoad.customerCommissionRate ?? 0) * 100) * 100) / 100);
@@ -51,6 +55,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
         setStartCity(''); setStartState(null);
         setEndCity(''); setEndState(null);
         setEarnings(0);
+        setLoadedMiles(0);
+        setDeadheadMiles(0);
         setTonu(0);
         setCommissionRate(null);
         setCustomerPct(0);
@@ -64,6 +70,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
   const customerAmount = customerPct > 0 && earnings > 0
     ? (earnings * (customerPct / 100)).toFixed(2)
     : null;
+  const totalMiles = loadedMiles + deadheadMiles;
+  const rpm = totalMiles > 0 && earnings > 0 ? earnings / totalMiles : null;
 
   async function handleSave() {
     const hasTonu = tonu > 0;
@@ -92,6 +100,8 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
       tonu,
       commissionRate: commissionRate ?? 0,
       customerCommissionRate: customerPct > 0 ? customerPct / 100 : undefined,
+      loadedMiles: loadedMiles > 0 ? loadedMiles : undefined,
+      deadheadMiles: deadheadMiles > 0 ? deadheadMiles : undefined,
     };
     await saveLoad(load);
     navigation.setParams({ load: undefined });
@@ -128,6 +138,26 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
           <StatePicker label="Select state" value={endState} onSelect={setEndState} />
 
           <ConfirmedAmountField
+            key={`loadedmi:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="LOADED MILES"
+            amount={loadedMiles}
+            money={false}
+            placeholder="e.g. 1450"
+            onCommit={(v) => setLoadedMiles(Math.max(0, Math.round(v)))}
+            onDelete={() => setLoadedMiles(0)}
+          />
+
+          <ConfirmedAmountField
+            key={`deadheadmi:${editLoad?.id ?? 'new'}:${weekKey}`}
+            label="DEAD HEAD MILES"
+            amount={deadheadMiles}
+            money={false}
+            placeholder="e.g. 100"
+            onCommit={(v) => setDeadheadMiles(Math.max(0, Math.round(v)))}
+            onDelete={() => setDeadheadMiles(0)}
+          />
+
+          <ConfirmedAmountField
             key={`earnings:${editLoad?.id ?? 'new'}:${weekKey}`}
             label="EARNINGS ($)"
             amount={earnings}
@@ -152,10 +182,15 @@ export function OwnerOpAddLoad({ navigation, route }: Props) {
             onDelete={() => setCustomerPct(0)}
           />
 
-          {(commissionAmount !== null || customerAmount !== null) && (
+          {(commissionAmount !== null || customerAmount !== null || rpm !== null) && (
             <View style={s.calcBox}>
               <Ionicons name="calculator-outline" size={16} color={C.accent} />
               <View>
+                {rpm !== null && (
+                  <Text style={s.calcText}>
+                    Rate per mile: ${rpm.toFixed(2)}/mi ({totalMiles.toLocaleString()} mi total)
+                  </Text>
+                )}
                 {commissionAmount !== null && (
                   <Text style={s.calcText}>Commission: ${commissionAmount}</Text>
                 )}

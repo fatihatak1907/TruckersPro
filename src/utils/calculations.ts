@@ -81,6 +81,26 @@ export function calcOwnerOpSummary(
   return { weekKey, totalEarnings, totalExpenses, totalDiesel, totalDef, milesDriven, mileageDeduction, netProfit };
 }
 
+/** Total miles for a load: loaded + deadhead. */
+export function loadTotalMiles(l: LoadEntry): number {
+  return (l.loadedMiles ?? 0) + (l.deadheadMiles ?? 0);
+}
+
+/** All-in rate per mile for one load: earnings / (loaded + deadhead). null when either side is missing. */
+export function loadRpm(l: LoadEntry): number | null {
+  const miles = loadTotalMiles(l);
+  const earnings = l.earnings ?? 0;
+  return miles > 0 && earnings > 0 ? earnings / miles : null;
+}
+
+/** Period-average RPM across loads that have both earnings and miles. null when none qualify. */
+export function periodRpm(loads: LoadEntry[]): number | null {
+  const qualifying = loads.filter((l) => loadTotalMiles(l) > 0 && (l.earnings ?? 0) > 0);
+  const miles = qualifying.reduce((s, l) => s + loadTotalMiles(l), 0);
+  const earnings = qualifying.reduce((s, l) => s + (l.earnings ?? 0), 0);
+  return miles > 0 ? earnings / miles : null;
+}
+
 export function calcCompanyMileSummary(loads: LoadEntry[]): CompanyMileWeeklySummary {
   const weekKey = loads[0]?.weekKey ?? '';
   const totalEarnings = loads.reduce(

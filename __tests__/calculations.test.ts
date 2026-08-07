@@ -4,6 +4,9 @@ import {
   calcCompanyCommissionSummary,
   normalizeExpenses,
   toPeriod,
+  loadTotalMiles,
+  loadRpm,
+  periodRpm,
 } from '../src/utils/calculations';
 import type { LoadEntry, WeeklyExpenses, FuelEntry } from '../src/types';
 
@@ -318,5 +321,54 @@ describe('calcOwnerOpSummary with opts.period', () => {
     const a = calcOwnerOpSummary(loads, expenses, fuel);
     const b = calcOwnerOpSummary(loads, expenses, fuel, { period: { days: 7, isMonth: false } });
     expect(a).toEqual(b);
+  });
+});
+
+describe('rate per mile (RPM)', () => {
+  const base = {
+    weekKey: '2026-05-25', driverType: 'owner-op' as const,
+    startLocation: 'Dallas, TX', endLocation: 'Los Angeles, CA',
+    createdAt: '2026-05-25',
+  };
+
+  it('sums loaded + deadhead for total miles', () => {
+    expect(loadTotalMiles({ ...base, id: '1', loadedMiles: 1450, deadheadMiles: 100 })).toBe(1550);
+    expect(loadTotalMiles({ ...base, id: '2', loadedMiles: 1450 })).toBe(1450);
+    expect(loadTotalMiles({ ...base, id: '3' })).toBe(0);
+  });
+
+  it('computes RPM = earnings / (loaded + deadhead)', () => {
+    const l = { ...base, id: '1', earnings: 3750, loadedMiles: 1450, deadheadMiles: 100 };
+    expect(loadRpm(l)).toBeCloseTo(3750 / 1550, 10);
+  });
+
+  it('uses the user example: 3750 / 1450 loaded-only = 2.586…', () => {
+    const l = { ...base, id: '1', earnings: 3750, loadedMiles: 1450 };
+    expect(loadRpm(l)).toBeCloseTo(2.5862, 3);
+  });
+
+  it('returns null without miles or without earnings', () => {
+    expect(loadRpm({ ...base, id: '1', earnings: 3750 })).toBeNull();
+    expect(loadRpm({ ...base, id: '2', loadedMiles: 500 })).toBeNull();
+    expect(loadRpm({ ...base, id: '3', tonu: 500, loadedMiles: 500 })).toBeNull();
+  });
+
+  it('deadhead-only miles still produce an RPM', () => {
+    const l = { ...base, id: '1', earnings: 200, deadheadMiles: 100 };
+    expect(loadRpm(l)).toBeCloseTo(2, 10);
+  });
+
+  it('period average weights by miles, skipping loads without mileage', () => {
+    const loads = [
+      { ...base, id: '1', earnings: 3750, loadedMiles: 1450, deadheadMiles: 100 }, // 1550 mi
+      { ...base, id: '2', earnings: 900, loadedMiles: 450 },                       // 450 mi
+      { ...base, id: '3', earnings: 1200 },                                        // no miles → excluded
+    ];
+    expect(periodRpm(loads)).toBeCloseTo((3750 + 900) / (1550 + 450), 10);
+  });
+
+  it('period average is null when no load has both earnings and miles', () => {
+    expect(periodRpm([{ ...base, id: '1', earnings: 1200 }])).toBeNull();
+    expect(periodRpm([])).toBeNull();
   });
 });

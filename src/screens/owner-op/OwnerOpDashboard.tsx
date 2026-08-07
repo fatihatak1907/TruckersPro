@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
 import { getLoadsForWeek, getWeeklyExpenses, ensureExpensesForPeriod, deleteLoad, getFuelEntriesForWeek, saveProfileName, getProfileName } from '../../storage/storage';
-import { calcOwnerOpSummary } from '../../utils/calculations';
+import { calcOwnerOpSummary, loadTotalMiles, loadRpm } from '../../utils/calculations';
 import { useWeek } from '../../context/WeekContext';
 import { C } from '../../theme';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -174,6 +174,15 @@ export function OwnerOpDashboard({ navigation, route }: Props) {
                 </View>
                 <View style={s.loadDetails}>
                   <Text style={s.loadDetail}>Earnings: <Text style={s.loadDetailBold}>{fmt(load.earnings ?? 0)}</Text></Text>
+                  {loadTotalMiles(load) > 0 && (
+                    <Text style={s.loadDetail}>
+                      Miles: <Text style={s.loadDetailBold}>{loadTotalMiles(load).toLocaleString()}</Text>
+                      {(load.deadheadMiles ?? 0) > 0 ? ` (${(load.deadheadMiles ?? 0).toLocaleString()} DH)` : ''}
+                      {loadRpm(load) !== null && (
+                        <>{'  ·  '}<Text style={s.loadDetailBold}>${loadRpm(load)!.toFixed(2)}/mi</Text></>
+                      )}
+                    </Text>
+                  )}
                   {(load.tonu ?? 0) > 0 && (
                     <Text style={s.loadDetail}>TONU: <Text style={s.loadDetailBold}>{fmt(load.tonu ?? 0)}</Text></Text>
                   )}

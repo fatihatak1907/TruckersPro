@@ -275,6 +275,8 @@ export async function pullFromSupabase(userId: string): Promise<void> {
       tonu: row.tonu != null ? Number(row.tonu) : undefined,
       commissionRate: row.commission_rate != null ? Number(row.commission_rate) : undefined,
       customerCommissionRate: row.customer_commission_rate != null ? Number(row.customer_commission_rate) : undefined,
+      loadedMiles: row.loaded_miles != null ? Number(row.loaded_miles) : undefined,
+      deadheadMiles: row.deadhead_miles != null ? Number(row.deadhead_miles) : undefined,
       paidMileage: row.paid_mileage != null ? Number(row.paid_mileage) : undefined,
       centsPerMile: row.cents_per_mile != null ? Number(row.cents_per_mile) : undefined,
       extraMileage: row.extra_mileage != null ? Number(row.extra_mileage) : undefined,

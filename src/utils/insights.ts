@@ -1,5 +1,5 @@
 import type { LoadEntry, WeeklyExpenses, FuelEntry, Frequency, OtherFrequency } from '../types';
-import { calcOwnerOpSummary, normalizeExpenses, toPeriod, CalcPeriod } from './calculations';
+import { calcOwnerOpSummary, normalizeExpenses, toPeriod, loadTotalMiles, loadRpm, periodRpm, CalcPeriod } from './calculations';
 import { fmt } from './format';
 
 export type InsightKind = 'net' | 'earnings' | 'expenses' | 'diesel' | 'def' | 'miles' | 'deduction';
@@ -141,11 +141,22 @@ export function buildInsight(kind: InsightKind, thisWeek: WeekData, lastWeek: We
       break;
     }
     case 'earnings': {
-      rows = thisWeek.loads.map((l) => ({
-        label: `${l.startLocation} → ${l.endLocation}`,
-        value: fmt(l.earnings ?? 0),
-        ...((l.tonu ?? 0) > 0 ? { sub: `+ ${fmt(l.tonu ?? 0)} TONU` } : {}),
-      }));
+      rows = thisWeek.loads.map((l) => {
+        const rpm = loadRpm(l);
+        const parts = [
+          ...((l.tonu ?? 0) > 0 ? [`+ ${fmt(l.tonu ?? 0)} TONU`] : []),
+          ...(loadTotalMiles(l) > 0 ? [`${loadTotalMiles(l).toLocaleString()} mi`] : []),
+          ...(rpm !== null ? [`$${rpm.toFixed(2)}/mi`] : []),
+        ];
+        return {
+          label: `${l.startLocation} → ${l.endLocation}`,
+          value: fmt(l.earnings ?? 0),
+          ...(parts.length > 0 ? { sub: parts.join(' · ') } : {}),
+        };
+      });
+      const avgRpm = periodRpm(thisWeek.loads);
+      if (avgRpm !== null)
+        footer.push({ label: 'Avg rate per mile', value: `$${avgRpm.toFixed(2)}/mi` });
       if (s.milesDriven > 0)
         footer.push({ label: 'Earnings per mile', value: `${fmt(s.totalEarnings / s.milesDriven)}/mi` });
       break;
