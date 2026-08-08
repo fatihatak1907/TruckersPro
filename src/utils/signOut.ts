@@ -1,10 +1,10 @@
-import { Alert } from 'react-native';
+import { showDialog } from '../components/AppDialog';
 import { supabase } from '../supabase/client';
 import { syncEngine } from '../sync/syncEngine';
 import { wipeAll } from '../storage/storage';
 
 export function confirmAndSignOut(): void {
-  Alert.alert('Sign out', 'Sign out of your account?', [
+  showDialog('Sign out', 'Sign out of your account?', [
     { text: 'Cancel', style: 'cancel' },
     {
       text: 'Sign out',

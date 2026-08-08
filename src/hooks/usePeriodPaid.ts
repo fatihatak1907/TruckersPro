@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+import { showDialog } from '../components/AppDialog';
 import { useFocusEffect } from '@react-navigation/native';
 import { isPeriodPaid, markPeriodPaid, unmarkPeriodPaid } from '../storage/storage';
 import { useWeek } from '../context/WeekContext';
@@ -24,7 +24,7 @@ export function usePeriodPaid(driverType: string) {
       markPeriodPaid(driverType, weekKey);
       return;
     }
-    Alert.alert('Remove payment confirmation?', 'This period will show as not paid.', [
+    showDialog('Remove payment confirmation?', 'This period will show as not paid.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive',

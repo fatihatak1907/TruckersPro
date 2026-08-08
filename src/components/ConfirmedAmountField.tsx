@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
 } from 'react-native';
+import { showDialog } from './AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { fmt } from '../utils/format';
 import { C } from '../theme';
@@ -69,7 +70,7 @@ export function ConfirmedAmountField({
   }
 
   function confirmDelete() {
-    Alert.alert(`Remove ${label.toLowerCase()}?`, undefined, [
+    showDialog(`Remove ${label.toLowerCase()}?`, undefined, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: onDelete },
     ]);
@@ -104,12 +105,16 @@ export function ConfirmedAmountField({
     );
   }
 
+  // A typed-but-unconfirmed value is not saved. Say so, so the amount can't be
+  // silently lost when the driver moves on without tapping the check.
+  const pending = editing && draft.trim().length > 0;
+
   // No frequency (odometers, mileage rate): amount + confirm on one line.
   if (!showFreq) {
     return (
       <View style={s.expenseBlock}>
         <Text style={s.fieldLabel}>{label}</Text>
-        <View style={s.inputRow}>
+        <View style={[s.inputRow, pending && s.inputPending]}>
           {percent ? <Text style={s.prefix}>%</Text> : money ? <Text style={s.prefix}>$</Text> : null}
           <TextInput
             style={s.inputFlex}
@@ -133,6 +138,7 @@ export function ConfirmedAmountField({
             <Ionicons name="checkmark" size={20} color={draft ? C.accentText : C.muted} />
           </TouchableOpacity>
         </View>
+        {pending && <Text style={s.pendingHint}>Tap ✓ to save this amount</Text>}
       </View>
     );
   }
@@ -141,7 +147,7 @@ export function ConfirmedAmountField({
   return (
     <View style={s.expenseBlock}>
       <Text style={s.fieldLabel}>{label}</Text>
-      <View style={s.inputCol}>
+      <View style={[s.inputCol, pending && s.inputPending]}>
         <View style={s.amountRow}>
           {money && <Text style={s.prefix}>$</Text>}
           <TextInput
@@ -177,6 +183,7 @@ export function ConfirmedAmountField({
           </TouchableOpacity>
         </View>
       </View>
+      {pending && <Text style={s.pendingHint}>Tap ✓ to save this amount</Text>}
     </View>
   );
 }
@@ -192,6 +199,11 @@ const s = StyleSheet.create({
   inputCol: {
     backgroundColor: C.card, borderRadius: 16,
     paddingHorizontal: 12, paddingBottom: 8, marginBottom: 12,
+  },
+  inputPending: { borderWidth: 1, borderColor: C.accent },
+  pendingHint: {
+    fontSize: 11, fontWeight: '700', color: C.accent,
+    marginTop: -6, marginBottom: 10, paddingLeft: 6,
   },
   amountRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4 },
   freqHint: { fontSize: 11, fontWeight: '600', color: C.accent, paddingRight: 4 },

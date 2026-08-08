@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, Alert, StatusBar,
+  TouchableOpacity, StatusBar,
 } from 'react-native';
+import { showDialog } from '../../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
@@ -78,7 +79,7 @@ export function OwnerOpHistory({ navigation, route }: Props) {
   }
 
   async function handleDeleteLoad(load: LoadEntry) {
-    Alert.alert('Delete Load', `Remove ${load.startLocation} → ${load.endLocation}?`, [
+    showDialog('Delete Load', `Remove ${load.startLocation} → ${load.endLocation}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
@@ -97,7 +98,7 @@ export function OwnerOpHistory({ navigation, route }: Props) {
   }
 
   async function handleDeleteWeek(weekKey: string) {
-    Alert.alert('Delete Week', 'Delete all data for this week?', [
+    showDialog('Delete Week', 'Delete all data for this week?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',

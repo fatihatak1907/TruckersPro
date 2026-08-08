@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert,
+  StyleSheet, ScrollView,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
+import { showDialog } from '../../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
@@ -231,7 +232,7 @@ export function OwnerOpWeeklyExpenses({ route }: { route: any }) {
                   <TouchableOpacity
                     style={s.iconBtn}
                     onPress={() =>
-                      Alert.alert(`Remove ${o.label}?`, undefined, [
+                      showDialog(`Remove ${o.label}?`, undefined, [
                         { text: 'Cancel', style: 'cancel' },
                         { text: 'Remove', style: 'destructive', onPress: () => deleteOther(o.id) },
                       ])

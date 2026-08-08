@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert, Keyboard,
+  StyleSheet, ScrollView, Keyboard,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
+import { showDialog } from '../../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,7 +36,7 @@ export function OwnerOpFuel({ route }: { route: any }) {
     Keyboard.dismiss();
     const c = parseFloat(cost);
     if (!cost || isNaN(c) || c <= 0) {
-      Alert.alert('Invalid', 'Enter a valid cost.');
+      showDialog('Invalid', 'Enter a valid cost.');
       return;
     }
     const entry: FuelEntry = {
@@ -52,7 +53,7 @@ export function OwnerOpFuel({ route }: { route: any }) {
   }
 
   async function handleDelete(id: string) {
-    Alert.alert('Delete', 'Remove this fuel entry?', [
+    showDialog('Delete', 'Remove this fuel entry?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',

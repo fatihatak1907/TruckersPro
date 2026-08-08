@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert,
+  StyleSheet, ScrollView,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
+import { showDialog } from '../../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,6 +29,9 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
   const [startState, setStartState] = useState<string | null>(null);
   const [endCity, setEndCity] = useState('');
   const [endState, setEndState] = useState<string | null>(null);
+  // Inline, per-field validation messages — shown next to the offending field
+  // rather than only in a popup, so it's obvious what to fix.
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [earnings, setEarnings] = useState(0);
   const [commissionRate, setCommissionRate] = useState<number | null>(null);
 
@@ -56,28 +60,36 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
     : null;
 
   async function handleSave() {
-    if (!startCity.trim() || !startState || !endCity.trim() || !endState) {
-      Alert.alert('Missing fields', 'Please enter city and select a state for both start and end.');
-      return;
-    }
-    if (earnings <= 0 || commissionRate === null) {
-      Alert.alert('Missing fields', 'Enter and confirm earnings and select a commission rate.');
+    const next: Record<string, string> = {};
+    if (!startCity.trim()) next.startCity = 'Enter the pickup city.';
+    if (!startState) next.startState = 'Select the pickup state.';
+    if (!endCity.trim()) next.endCity = 'Enter the delivery city.';
+    if (!endState) next.endState = 'Select the delivery state.';
+    if (earnings <= 0) next.earnings = 'Enter the load earnings and tap ✓ to confirm.';
+    if (commissionRate === null) next.commission = 'Pick your commission rate.';
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      showDialog('Check the highlighted fields', Object.values(next).join('\n\n'));
       return;
     }
     const load: LoadEntry = {
       id: editLoad?.id ?? uuidv4(),
       weekKey: editLoad?.weekKey ?? weekKey,
       driverType: 'company-commission',
-      startLocation: joinCityState(startCity, startState),
-      endLocation: joinCityState(endCity, endState),
+      startLocation: joinCityState(startCity, startState!),
+      endLocation: joinCityState(endCity, endState!),
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
       earnings,
-      commissionRate,
+      // Non-null: the validation above returns unless a rate is picked.
+      commissionRate: commissionRate!,
     };
+    setErrors({});
     await saveLoad(load);
     navigation.setParams({ load: undefined });
     navigation.navigate('Dashboard');
   }
+
+  const err = (k: string) => (errors[k] ? <Text style={s.errorText}>{errors[k]}</Text> : null);
 
   return (
     <View style={s.root}>
@@ -99,29 +111,45 @@ export function CompanyCommissionAddLoad({ navigation, route }: Props) {
           automaticallyAdjustKeyboardInsets={true}
         >
           <Text style={s.fieldLabel}>STARTING CITY</Text>
-          <TextInput style={s.input} value={startCity} onChangeText={setStartCity} placeholder="e.g. Dallas" placeholderTextColor={C.muted} />
+          <TextInput
+            style={[s.input, errors.startCity && s.inputError]}
+            value={startCity}
+            onChangeText={(t) => { setStartCity(t); if (errors.startCity) setErrors((e) => ({ ...e, startCity: '' })); }}
+            placeholder="e.g. Dallas" placeholderTextColor={C.muted}
+          />
+          {err('startCity')}
           <Text style={s.fieldLabel}>STARTING STATE</Text>
-          <StatePicker label="Select state" value={startState} onSelect={setStartState} />
+          <StatePicker label="Select state" value={startState} onSelect={(v) => { setStartState(v); setErrors((e) => ({ ...e, startState: '' })); }} />
+          {err('startState')}
 
           <Text style={s.fieldLabel}>ENDING CITY</Text>
-          <TextInput style={s.input} value={endCity} onChangeText={setEndCity} placeholder="e.g. Miami" placeholderTextColor={C.muted} />
+          <TextInput
+            style={[s.input, errors.endCity && s.inputError]}
+            value={endCity}
+            onChangeText={(t) => { setEndCity(t); if (errors.endCity) setErrors((e) => ({ ...e, endCity: '' })); }}
+            placeholder="e.g. Miami" placeholderTextColor={C.muted}
+          />
+          {err('endCity')}
           <Text style={s.fieldLabel}>ENDING STATE</Text>
-          <StatePicker label="Select state" value={endState} onSelect={setEndState} />
+          <StatePicker label="Select state" value={endState} onSelect={(v) => { setEndState(v); setErrors((e) => ({ ...e, endState: '' })); }} />
+          {err('endState')}
 
           <ConfirmedAmountField
             key={`earnings:${editLoad?.id ?? 'new'}:${weekKey}`}
             label="EARNINGS ($)"
             amount={earnings}
-            onCommit={(v) => setEarnings(v)}
+            onCommit={(v) => { setEarnings(v); setErrors((e) => ({ ...e, earnings: '' })); }}
             onDelete={() => setEarnings(0)}
           />
+          {err('earnings')}
 
           <CommissionSelector
             label="COMMISSION RATE"
             options={[0, 0.20, 0.25, 0.30, 0.35]}
             selected={commissionRate}
-            onSelect={setCommissionRate}
+            onSelect={(v) => { setCommissionRate(v); setErrors((e) => ({ ...e, commission: '' })); }}
           />
+          {err('commission')}
 
           {driverCut !== null && (
             <View style={s.calcBox}>
@@ -150,6 +178,8 @@ const s = StyleSheet.create({
     padding: 16, marginBottom: 12,
     fontSize: 16, color: C.text,
   },
+  inputError: { borderWidth: 1, borderColor: C.danger, marginBottom: 4 },
+  errorText: { color: C.danger, fontSize: 12, fontWeight: '600', marginBottom: 10, paddingLeft: 6 },
   calcBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 20,

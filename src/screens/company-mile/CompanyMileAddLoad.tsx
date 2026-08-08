@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert,
+  StyleSheet, ScrollView,
   KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
+import { showDialog } from '../../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,6 +28,9 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
   const [startState, setStartState] = useState<string | null>(null);
   const [endCity, setEndCity] = useState('');
   const [endState, setEndState] = useState<string | null>(null);
+  // Inline, per-field validation messages — shown next to the offending field
+  // rather than only in a popup, so it's obvious what to fix.
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [paidMileage, setPaidMileage] = useState(0);
   const [centsPerMile, setCentsPerMile] = useState(0);
   const [extraMileage, setExtraMileage] = useState(0);
@@ -59,29 +63,36 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
       : null;
 
   async function handleSave() {
-    if (!startCity.trim() || !startState || !endCity.trim() || !endState) {
-      Alert.alert('Missing fields', 'Please enter city and select a state for both start and end.');
-      return;
-    }
-    if (paidMileage <= 0 || centsPerMile <= 0) {
-      Alert.alert('Missing fields', 'Enter and confirm the paid mileage and rate.');
+    const next: Record<string, string> = {};
+    if (!startCity.trim()) next.startCity = 'Enter the pickup city.';
+    if (!startState) next.startState = 'Select the pickup state.';
+    if (!endCity.trim()) next.endCity = 'Enter the delivery city.';
+    if (!endState) next.endState = 'Select the delivery state.';
+    if (paidMileage <= 0) next.paidMileage = 'Enter the paid miles and tap ✓ to confirm.';
+    if (centsPerMile <= 0) next.centsPerMile = 'Enter your rate per mile and tap ✓ to confirm.';
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      showDialog('Check the highlighted fields', Object.values(next).join('\n\n'));
       return;
     }
     const load: LoadEntry = {
       id: editLoad?.id ?? uuidv4(),
       weekKey: editLoad?.weekKey ?? weekKey,
       driverType: 'company-mile',
-      startLocation: joinCityState(startCity, startState),
-      endLocation: joinCityState(endCity, endState),
+      startLocation: joinCityState(startCity, startState!),
+      endLocation: joinCityState(endCity, endState!),
       createdAt: editLoad?.createdAt ?? new Date().toISOString(),
       paidMileage,
       centsPerMile,
       extraMileage,
     };
+    setErrors({});
     await saveLoad(load);
     navigation.setParams({ load: undefined });
     navigation.navigate('Dashboard');
   }
+
+  const err = (k: string) => (errors[k] ? <Text style={s.errorText}>{errors[k]}</Text> : null);
 
   return (
     <View style={s.root}>
@@ -103,14 +114,28 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
           automaticallyAdjustKeyboardInsets={true}
         >
           <Text style={s.fieldLabel}>STARTING CITY</Text>
-          <TextInput style={s.input} value={startCity} onChangeText={setStartCity} placeholder="e.g. Dallas" placeholderTextColor={C.muted} />
+          <TextInput
+            style={[s.input, errors.startCity && s.inputError]}
+            value={startCity}
+            onChangeText={(t) => { setStartCity(t); if (errors.startCity) setErrors((e) => ({ ...e, startCity: '' })); }}
+            placeholder="e.g. Dallas" placeholderTextColor={C.muted}
+          />
+          {err('startCity')}
           <Text style={s.fieldLabel}>STARTING STATE</Text>
-          <StatePicker label="Select state" value={startState} onSelect={setStartState} />
+          <StatePicker label="Select state" value={startState} onSelect={(v) => { setStartState(v); setErrors((e) => ({ ...e, startState: '' })); }} />
+          {err('startState')}
 
           <Text style={s.fieldLabel}>ENDING CITY</Text>
-          <TextInput style={s.input} value={endCity} onChangeText={setEndCity} placeholder="e.g. Los Angeles" placeholderTextColor={C.muted} />
+          <TextInput
+            style={[s.input, errors.endCity && s.inputError]}
+            value={endCity}
+            onChangeText={(t) => { setEndCity(t); if (errors.endCity) setErrors((e) => ({ ...e, endCity: '' })); }}
+            placeholder="e.g. Los Angeles" placeholderTextColor={C.muted}
+          />
+          {err('endCity')}
           <Text style={s.fieldLabel}>ENDING STATE</Text>
-          <StatePicker label="Select state" value={endState} onSelect={setEndState} />
+          <StatePicker label="Select state" value={endState} onSelect={(v) => { setEndState(v); setErrors((e) => ({ ...e, endState: '' })); }} />
+          {err('endState')}
 
           <ConfirmedAmountField
             key={`paidMileage:${editLoad?.id ?? 'new'}:${weekKey}`}
@@ -118,9 +143,10 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
             amount={paidMileage}
             money={false}
             placeholder="e.g. 500"
-            onCommit={(v) => setPaidMileage(v)}
+            onCommit={(v) => { setPaidMileage(v); setErrors((e) => ({ ...e, paidMileage: '' })); }}
             onDelete={() => setPaidMileage(0)}
           />
+          {err('paidMileage')}
           <ConfirmedAmountField
             key={`extraMileage:${editLoad?.id ?? 'new'}:${weekKey}`}
             label="EXTRA MILEAGE"
@@ -135,9 +161,10 @@ export function CompanyMileAddLoad({ navigation, route }: Props) {
             label="RATE ($ PER MILE)"
             amount={centsPerMile}
             placeholder="0.55"
-            onCommit={(v) => setCentsPerMile(v)}
+            onCommit={(v) => { setCentsPerMile(v); setErrors((e) => ({ ...e, centsPerMile: '' })); }}
             onDelete={() => setCentsPerMile(0)}
           />
+          {err('centsPerMile')}
 
           {loadEarnings !== null && (
             <View style={s.calcBox}>
@@ -166,6 +193,8 @@ const s = StyleSheet.create({
     padding: 16, marginBottom: 12,
     fontSize: 16, color: C.text,
   },
+  inputError: { borderWidth: 1, borderColor: C.danger, marginBottom: 4 },
+  errorText: { color: C.danger, fontSize: 12, fontWeight: '600', marginBottom: 10, paddingLeft: 6 },
   calcBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.card, borderRadius: 16, padding: 14, marginBottom: 20,

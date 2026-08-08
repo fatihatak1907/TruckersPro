@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { showDialog } from '../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { syncEngine } from '../sync/syncEngine';
@@ -32,7 +33,7 @@ export function SyncStatusBadge() {
     <TouchableOpacity
       onPress={() => {
         if (isError) {
-          Alert.alert(
+          showDialog(
             'Sync error',
             'We couldn\'t sync your latest changes. Tap retry to try again.',
             [

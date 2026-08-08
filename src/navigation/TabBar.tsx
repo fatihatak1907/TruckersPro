@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,14 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Fuel:      'water-outline',
   Expenses:  'wallet-outline',
   History:   'time-outline',
+};
+
+const LABELS: Record<string, string> = {
+  Dashboard: 'Home',
+  AddLoad:   'Add Load',
+  Fuel:      'Fuel',
+  Expenses:  'Expenses',
+  History:   'History',
 };
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -27,12 +35,16 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             }
           };
           const icon = ICONS[route.name] ?? 'ellipse-outline';
+          const label = LABELS[route.name] ?? route.name;
           return (
             <TouchableOpacity
               key={route.key}
               onPress={onPress}
               activeOpacity={0.7}
               style={s.cell}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={label}
             >
               <View style={[s.iconWrap, isFocused && s.iconWrapActive]}>
                 <Ionicons
@@ -41,6 +53,12 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                   color={isFocused ? C.accentText : C.sub}
                 />
               </View>
+              <Text
+                style={[s.label, isFocused && s.labelActive]}
+                numberOfLines={1}
+              >
+                {label}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -70,11 +88,13 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  cell: { flex: 1, alignItems: 'center', justifyContent: 'center', minWidth: 56 },
+  cell: { flex: 1, alignItems: 'center', justifyContent: 'center', minWidth: 60 },
   iconWrap: {
-    width: 44, height: 44,
+    width: 40, height: 40,
     borderRadius: 999,
     alignItems: 'center', justifyContent: 'center',
   },
   iconWrapActive: { backgroundColor: C.accent },
+  label: { fontSize: 10, fontWeight: '600', color: C.sub, marginTop: 2 },
+  labelActive: { color: C.accent, fontWeight: '800' },
 });

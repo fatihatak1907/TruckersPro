@@ -16,6 +16,7 @@ import { syncEngine } from './src/sync/syncEngine';
 import { runMigrationAndPull } from './src/sync/migration';
 import { saveDriverType, getDriverType, wipeAll, getLastUserId, setLastUserId } from './src/storage/storage';
 import { C } from './src/theme';
+import { DialogHost } from './src/components/AppDialog';
 
 type AuthState = 'loading' | 'signed-out' | 'needs-profile' | 'migrating' | 'ready' | 'error';
 
@@ -220,7 +221,14 @@ export default function App() {
     content = <View style={s.center} />;
   }
 
-  return <SafeAreaProvider>{content}</SafeAreaProvider>;
+  return (
+    <SafeAreaProvider>
+      {content}
+      {/* Mounted once, above every screen: renders app-themed dialogs in place
+          of the OS default Alert. */}
+      <DialogHost />
+    </SafeAreaProvider>
+  );
 }
 
 const s = StyleSheet.create({

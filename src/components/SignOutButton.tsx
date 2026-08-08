@@ -1,28 +1,30 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { confirmAndSignOut } from '../utils/signOut';
-import { confirmAndDeleteAccount } from '../utils/deleteAccount';
+import { AccountModal } from '../screens/AccountScreen';
 import { C } from '../theme';
 
-function openAccountMenu(): void {
-  Alert.alert('Account', undefined, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete account', style: 'destructive', onPress: confirmAndDeleteAccount },
-    { text: 'Sign out', onPress: confirmAndSignOut },
-  ]);
-}
-
+/**
+ * Header button that opens the full Account screen (profile, about, sign out,
+ * delete account). Named for its original role; kept so every dashboard header
+ * keeps working unchanged.
+ */
 export function SignOutButton() {
+  const [open, setOpen] = useState(false);
   return (
-    <TouchableOpacity
-      onPress={openAccountMenu}
-      style={s.btn}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-    >
-      <Ionicons name="person-circle-outline" size={16} color={C.text} />
-      <Text style={s.text}>Account</Text>
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        onPress={() => setOpen(true)}
+        style={s.btn}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Account settings"
+      >
+        <Ionicons name="person-circle-outline" size={16} color={C.text} />
+        <Text style={s.text}>Account</Text>
+      </TouchableOpacity>
+      <AccountModal visible={open} onClose={() => setOpen(false)} />
+    </>
   );
 }
 

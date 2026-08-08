@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, Alert, StatusBar,
+  TouchableOpacity, StatusBar,
 } from 'react-native';
+import { showDialog } from '../../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { fmt } from '../../components/SummaryCard';
@@ -46,7 +47,7 @@ export function CompanyMileDashboard({ navigation }: Props) {
   function handleEdit(load: LoadEntry) { navigation.navigate('AddLoad', { load }); }
 
   function handleDelete(load: LoadEntry) {
-    Alert.alert('Delete Load', `Remove ${load.startLocation} → ${load.endLocation}?`, [
+    showDialog('Delete Load', `Remove ${load.startLocation} → ${load.endLocation}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
         await deleteLoad('company-mile', load.weekKey, load.id);
