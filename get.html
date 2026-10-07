@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get TruckersPro</title>
+<style>
+  :root {
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #16171b;
+    color: #f2f3f5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  header {
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-size: 28px;
+    margin: 0 0 8px;
+    color: #FFD600;
+  }
+  .subtitle {
+    color: #b7b9c0;
+    font-size: 15px;
+    margin: 0;
+  }
+  .card {
+    background: #1f2126;
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  h2 {
+    font-size: 18px;
+    margin: 0 0 10px;
+    color: #FFD600;
+  }
+  p {
+    margin: 0 0 12px;
+    color: #f2f3f5;
+  }
+  p:last-child {
+    margin-bottom: 0;
+  }
+  a {
+    color: #FFD600;
+  }
+  footer {
+    margin-top: 32px;
+    color: #8b8d94;
+    font-size: 14px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap" style="text-align:center">
+  <header>
+    <h1>Get TruckersPro</h1>
+    <p class="subtitle">Free for iPhone and Android &middot; Know what you actually keep</p>
+  </header>
+  <div class="card">
+    <p id="msg">Choose your store:</p>
+    <p style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:center;margin:24px 0">
+      <a id="ios" href="https://apps.apple.com/app/id6820229950"><img src="badge-appstore.svg" alt="Download on the App Store" style="height:56px"></a>
+      <a id="android" href="https://play.google.com/store/apps/details?id=com.fatihatak.truckerspro"><img src="badge-googleplay.png" alt="Get it on Google Play" style="height:56px"></a>
+    </p>
+    <p id="soon" style="display:none;color:#FFD600;font-weight:600">iPhone version: coming soon to the App Store.</p>
+  </div>
+  <footer><a href="index.html">TruckersPro home</a> &middot; <a href="privacy.html">Privacy Policy</a></footer>
+</div>
+<script>
+  // Flip to true the day Apple approves the app.
+  var IOS_LIVE = false;
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  if (!IOS_LIVE) {
+    document.getElementById('ios').style.opacity = '0.4';
+    document.getElementById('ios').removeAttribute('href');
+    document.getElementById('soon').style.display = 'block';
+  }
+  if (isAndroid) {
+    location.replace(document.getElementById('android').href);
+  } else if (isIOS && IOS_LIVE) {
+    location.replace('https://apps.apple.com/app/id6820229950');
+  } else if (isIOS) {
+    document.getElementById('msg').textContent = 'TruckersPro for iPhone is almost here.';
+  }
+</script>
+</body>
+</html>
